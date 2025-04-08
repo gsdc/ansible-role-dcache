@@ -35,6 +35,7 @@
   stat:
     path: "/var/lib/pgsql/{{ psql_version }}/data"
   register: psql_data
+  notify: configure DB
 - name: "Initilizing PostgreSQL DB"
   command: /usr/pgsql-{{ psql_version }}/bin/postgresql-{{ psql_version }}-setup initdb
   when: not psql_data.stat.exists  
@@ -46,20 +47,6 @@
 host    all             all             127.0.0.1/32            trust\n
 host    all             all             ::1/128                 trust\n
 "  
-- name: Start DB server 
-  service:
-    name: "postgresql-{{ psql_version }}"
-    state: started
-- community.postgresql.postgresql_user:
-    name: dcache
-    role_attr_flags: CREATEDB
-- community.postgresql.postgresql_db:
-    name: chimera
-    login_user: dcache
-- community.postgresql.postgresql_db:
-    name: pinmanager
-    login_user: dcache
-
 - copy:
     dest: /etc/dcache/ban.conf
     owner: dcache
@@ -127,4 +114,8 @@ username:admin uid:0 gid:0,true"
     mode: "0644"
 - name: Restart dcache 
   command: dcache restart
-    
+
+- name: Install XRootD server
+  package: 
+    name: xrootd-server
+    state: latest

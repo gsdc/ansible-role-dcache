@@ -1,5 +1,7 @@
 ---
 # handlers file for geonmo.dcache
+- name: configure DB                                                                                                                                                                                           
+  include_tasks: tasks/config_db.yml
 - name: restart db
   service:
     name: postgresql-{{ psql_version }}

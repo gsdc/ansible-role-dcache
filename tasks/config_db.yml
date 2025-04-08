@@ -1,0 +1,13 @@
+- name: Start DB server                                                                                                                                                                                           
+  service:                                                                                                                                                                                                        
+    name: "postgresql-{{ psql_version }}"                                                                                                                                                                         
+    state: started                                                                                                                                                                                                
+- community.postgresql.postgresql_user:                                                                                                                                                                           
+    name: dcache                                                                                                                                                                                                  
+    role_attr_flags: CREATEDB                                                                                                                                                                                     
+- community.postgresql.postgresql_db:                                                                                                                                                                             
+    name: chimera                                                                                                                                                                                                 
+    login_user: dcache                                                                                                                                                                                            
+- community.postgresql.postgresql_db:                                                                                                                                                                             
+    name: pinmanager                                                                                                                                                                                              
+    login_user: dcache       
