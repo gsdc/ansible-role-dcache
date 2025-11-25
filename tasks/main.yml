@@ -9,9 +9,15 @@
 - name: Checking dcache package
   package_facts:
     manager: auto
+- name: Print dcache version
+  debug:
+    msg: "{{ dcache_version }}"
+- name: Print dcache release version
+  debug:
+    msg: "{{ dcache_version | regex_search('([0-9]+\\.[0-9]+)') }}"
 - name: Install dcache package
   yum:
-    name: https://www.dcache.org/old/downloads/1.9/repo/{{ dcache_version[0:3] }}/dcache-{{ dcache_version }}-1.noarch.rpm
+    name: "https://dcache.org/old/downloads/1.9/repo/{{ dcache_version | regex_search('([0-9]+\\.[0-9]+)') }}/dcache-{{ dcache_version }}-1.noarch.rpm"
     state: present
     disable_gpg_check: true
   when: "'dcache' not in ansible_facts.packages"

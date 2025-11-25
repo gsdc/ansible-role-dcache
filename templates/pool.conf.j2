@@ -1,7 +1,9 @@
 dcache.zookeeper.connection = {{ headnode }}:2181
 dcache.systemd.strict=false
-[${host.name}-poolDomain]
-[${host.name}-poolDomain/pool]
-pool.name=${host.name}-pool
-pool.path={{ volume_path }}
+{% for volume in volumes %}
+[${host.name}-{{ volume.name }}-Domain]
+[${host.name}-{{ volume.name }}-Domain/pool]
+pool.name={{ volume.name }}
+pool.path={{ volume.path }}
 #pool.wait-for-files=${pool.path}/data
+{% endfor %}

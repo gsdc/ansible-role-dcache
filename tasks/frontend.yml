@@ -1,3 +1,8 @@
+- name: Enable CRB repo for RHEL9 variation.
+  command: dnf config-manager --set-enabled crb
+  when:
+    - ansible_distribution_major_version == "9"
+    - (ansible_distribution == "AlmaLinux") or (ansible_distribution == "Rocky") or (ansible_distribution == "CentOS")
 - name: checking yum repo
   stat:
     path: /etc/yum.repos.d/pgdg-redhat-all.repo
@@ -26,8 +31,13 @@
   package: 
     name: "postgresql{{ psql_version }}-server"
     state: present
-  notify:
-    - initdb
+- name: "Checking the DB is ready."
+  stat:
+    path: "/var/lib/pgsql/{{ psql_version }}/data"
+  register: psql_data
+- name: "Initilizing PostgreSQL DB"
+  command: /usr/pgsql-{{ psql_version }}/bin/postgresql-{{ psql_version }}-setup initdb
+  when: not psql_data.stat.exists  
 - copy: 
     dest: "/var/lib/pgsql/{{ psql_version }}/data/pg_hba.conf"
     owner: postgres
