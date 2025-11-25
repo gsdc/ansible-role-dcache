@@ -1,7 +1,8 @@
 ---
 # defaults file for gsdc.dcache
-psql_version: 15
-dcache_version: 9.2.21
-volume_path: /dcache_pool
+psql_version: 18
+dcache_version: 10.2.19
+volume_paths: 
+  - {name:"lustre01-pool", path:"/dcache_pool"}
 headnode: node1.private.lo
 type: ""
