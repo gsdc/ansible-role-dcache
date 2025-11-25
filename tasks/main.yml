@@ -35,12 +35,13 @@
     owner: dcache
     group: dcache
     mode: "0400"
-- name: "Check {{ volume_path }}"
+- name: "Check volume_paths"
   file:
-    path: "{{ volume_path }}"
+    path: "{{ item.path }}"
     owner: dcache
     group: dcache
     state: directory
+  with_items: volume_paths
 
 - name: Configure dcache
   include_tasks: "{{ type }}.yml"
