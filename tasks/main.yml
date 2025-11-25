@@ -3,7 +3,7 @@
 - name: Configure Java JDK
   package:
     name:
-      - java-11-openjdk-headless 
+      - java-17-openjdk-headless 
       - httpd-tools
     state: present
 - name: Checking dcache package
@@ -22,14 +22,16 @@
     disable_gpg_check: true
   when: "'dcache' not in ansible_facts.packages"
 - name: Check hostcert file
-  file: 
-    path: /etc/grid-security/hostcert.pem
+  copy: 
+    src: files/{{ ansible_hostname }}_hostcert.pem
+    dest: /etc/grid-security/hostcert.pem
     owner: dcache
     group: dcache
     mode: "0644"
 - name: Check hostkey file
-  file: 
-    path: /etc/grid-security/hostkey.pem
+  copy: 
+    src: files/{{ ansible_hostname }}_hostkey.pem
+    dest: /etc/grid-security/hostkey.pem
     owner: dcache
     group: dcache
     mode: "0400"

@@ -1,8 +1,17 @@
 ---
-# defaults file for gsdc.dcache
+# defaults file for geonmo.dcache
 psql_version: 18
-dcache_version: 10.2.19
-volume_paths: 
-  - {name:"lustre01-pool", path:"/dcache_pool"}
-headnode: node1.private.lo
-type: ""
+dcache_version: 10.2.18
+dcache_volumes: 
+  - {name:"ngnu01-pool", path:"/ngnu/dcache/01"}
+dcache_headnode: "{{ ansible_fqdn }}"
+dcache_use_voms: true
+dcache_use_oidc: true
+#multimaps:
+#  - scheme: "op"
+#    principal: "VO"
+#    uid: 50000
+#    gid: 50000
+#    primary: true
+#    username: "vouser"
+multimaps: []

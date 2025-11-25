@@ -1,0 +1,5 @@
+# /etc/dcache/multi-mapfile
+{% for map in multimaps %}
+{{ map.scheme}}:{{ map.principal }}   uid:{{ map.uid }} gid{{ map.gid }},{{ (map.primary | default(true)) | string | lower }} username:{{ map.username }}
+{% endfor %}
+

@@ -1,0 +1,64 @@
+- name: checking yum repo
+  stat:
+    path: /etc/yum.repos.d/pgdg-redhat-all.repo
+  register: stat_yum_repo
+- name: Install PostgreSQL repository
+  yum: 
+    name: "https://download.postgresql.org/pub/repos/yum/reporpms/EL-{{ ansible_distribution_major_version }}-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
+    state: present
+  when: not stat_yum_repo.stat.exists
+- name: Install psycopg2 for postgresql control. 
+  package:
+    name:  python-psycopg2
+    state: present
+- name: "Install PostgreSQL {{ psql_version }} Server"
+  package: 
+    name: "postgresql{{ psql_version }}-server"
+    state: present
+- name: "Checking the DB is ready."
+  stat:
+    path: "/var/lib/pgsql/{{ psql_version }}/data"
+  register: psql_data
+  notify: configure DB
+- name: "Initilizing PostgreSQL DB"
+  command: /usr/pgsql-{{ psql_version }}/bin/postgresql-{{ psql_version }}-setup initdb
+  when: not psql_data.stat.exists  
+- copy: 
+    dest: "/var/lib/pgsql/{{ psql_version }}/data/pg_hba.conf"
+    owner: postgres
+    group: postgres
+    content: "local   all             all                                     trust\n
+host    all             all             127.0.0.1/32            trust\n
+host    all             all             ::1/128                 trust\n
+"  
+- copy:
+    dest: /etc/dcache/ban.conf
+    owner: dcache
+    group: dcache
+    content: ""
+    mode: "0644" 
+- copy:
+    dest: /etc/dcache/dcache.conf
+    owner: dcache
+    group: dcache
+    mode: "0644"
+    content: "dcache.layout=gsdc\n"
+- name: Render multimap file
+  ansible.builtin.template:
+    src: multi-mapfile.j2
+    dest: /etc/dcache/multi-mapfile
+    owner: dcache
+    group: dcache
+    mode: "0600"
+  when: 
+    - dcache_use_oidc
+    - multimaps | default([]) | length > 0
+- template: 
+    src: layout.conf.j2
+    dest: /etc/dcache/layouts/gsdc.conf
+    owner: dcache
+    group: dcache
+    mode: "0644"
+- name: Restart dcache
+  command: dcache restart
+ 

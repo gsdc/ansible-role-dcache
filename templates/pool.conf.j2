@@ -1,4 +1,4 @@
-dcache.zookeeper.connection = {{ headnode }}:2181
+dcache.zookeeper.connection = {{ dcache_headnode }}:2181
 dcache.systemd.strict=false
 {% for volume in volumes %}
 [${host.name}-{{ volume.name }}-Domain]
