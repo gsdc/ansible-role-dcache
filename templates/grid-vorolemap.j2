@@ -1,0 +1,5 @@
+{%- for a in dcache_accounts -%}
+  {%- for f in a.voms_fqans -%}
+"{{ f }}" {{ a.username }}
+  {%- endfor -%}
+{%- endfor -%}

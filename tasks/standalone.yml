@@ -2,47 +2,95 @@
   stat:
     path: /etc/yum.repos.d/pgdg-redhat-all.repo
   register: stat_yum_repo
-- name: Install PostgreSQL repository
-  yum: 
-    name: "https://download.postgresql.org/pub/repos/yum/reporpms/EL-{{ ansible_distribution_major_version }}-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
-    state: present
-  when: not stat_yum_repo.stat.exists
-- name: Install psycopg2 for postgresql control. 
-  package:
-    name:  python-psycopg2
-    state: present
-- name: "Install PostgreSQL {{ psql_version }} Server"
-  package: 
-    name: "postgresql{{ psql_version }}-server"
-    state: present
-- name: "Checking the DB is ready."
-  stat:
-    path: "/var/lib/pgsql/{{ psql_version }}/data"
-  register: psql_data
-  notify: configure DB
-- name: "Initilizing PostgreSQL DB"
-  command: /usr/pgsql-{{ psql_version }}/bin/postgresql-{{ psql_version }}-setup initdb
-  when: not psql_data.stat.exists  
-- copy: 
-    dest: "/var/lib/pgsql/{{ psql_version }}/data/pg_hba.conf"
-    owner: postgres
-    group: postgres
-    content: "local   all             all                                     trust\n
-host    all             all             127.0.0.1/32            trust\n
-host    all             all             ::1/128                 trust\n
-"  
+- name: Provisioning PostgreSQL
+  include_tasks: provision_db.yml
 - copy:
     dest: /etc/dcache/ban.conf
     owner: dcache
     group: dcache
     content: ""
     mode: "0644" 
-- copy:
+- name: Ensure grid-security directory exists
+  file:
+    path: /etc/grid-security
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+- template:
+    src: dcache.conf.j2
     dest: /etc/dcache/dcache.conf
     owner: dcache
     group: dcache
     mode: "0644"
-    content: "dcache.layout=gsdc\n"
+- name: Render gplazma.conf when door/frontend
+  ansible.builtin.template:
+    src: gplazma.conf.j2
+    dest: /etc/dcache/gplazma.conf
+    owner: dcache
+    group: dcache
+    mode: "0644"
+  when: type in ["frontend","standalone"]
+- name: Ensure htpasswd users when enabled
+  community.general.htpasswd:
+    path: /etc/dcache/htpasswd
+    name: "{{ item.name }}"
+    password: "{{ item.password }}"
+    owner: dcache
+    group: dcache
+    mode: 0640
+  loop:
+    - { name: "vagrant", password: "vagrant" }
+    - { name: "admin", password: "admin" }
+  when:
+    - type in ["frontend","standalone"]
+    - dcache_use_htpasswd | default(true)
+- name: Require unified accounts on doors
+  assert:
+    that:
+      - (dcache_accounts | default([])) | length > 0
+    fail_msg: "dcache_accounts must be provided to generate storage-authzdb and grid-vorolemap."
+  when: type in ["frontend","standalone"]
+- name: Ensure each account has at least one storage entry
+  assert:
+    that:
+      - item.entries is defined
+      - item.entries | length > 0
+    fail_msg: "Account '{{ item.username | default('UNKNOWN') }}' must define entries (root/path)."
+  loop: "{{ dcache_accounts | default([]) }}"
+  loop_control:
+    label: "{{ item.username }}"
+  when: type in ["frontend","standalone"]
+- name: Ensure each account has at least one VOMS FQAN when VOMS enabled
+  assert:
+    that:
+      - item.voms_fqans is defined
+      - item.voms_fqans | length > 0
+    fail_msg: "Account '{{ item.username | default('UNKNOWN') }}' must define voms_fqans when dcache_use_voms=true."
+  loop: "{{ dcache_accounts | default([]) }}"
+  loop_control:
+    label: "{{ item.username }}"
+  when:
+    - type in ["frontend","standalone"]
+    - dcache_use_voms | default(true)
+- name: Render storage-authzdb
+  ansible.builtin.template:
+    src: storage-authzdb.j2
+    dest: /etc/grid-security/storage-authzdb
+    owner: dcache
+    group: dcache
+    mode: "0644"
+  when: type in ["frontend","standalone"]
+- name: Render grid-vorolemap
+  ansible.builtin.template:
+    src: grid-vorolemap.j2
+    dest: /etc/grid-security/grid-vorolemap
+    owner: dcache
+    group: dcache
+    mode: "0644"
+  when:
+    - type in ["frontend","standalone"]
+    - dcache_use_voms | default(true)
 - name: Render multimap file
   ansible.builtin.template:
     src: multi-mapfile.j2
@@ -55,10 +103,16 @@ host    all             all             ::1/128                 trust\n
     - multimaps | default([]) | length > 0
 - template: 
     src: layout.conf.j2
-    dest: /etc/dcache/layouts/gsdc.conf
+    dest: /etc/dcache/layouts/{{ dcache_layout }}.conf
     owner: dcache
     group: dcache
     mode: "0644"
 - name: Restart dcache
   command: dcache restart
  
+# Optional packages typically for door/frontend
+- name: Install XRootD server
+  package:
+    name: xrootd-server
+    state: latest
+  when: type in ["frontend","standalone"]

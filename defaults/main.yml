@@ -7,6 +7,19 @@ dcache_volumes:
 dcache_headnode: "{{ ansible_fqdn }}"
 dcache_use_voms: true
 dcache_use_oidc: true
+dcache_use_htpasswd: true
+dcache_xrootd:
+  readpath: "/"
+  writepath: "/"
+  port: 1094
+dcache_webdav:
+  cellname: "webdav"
+  root: "/"
+  protocol: "https"
+  redirect_on_read: false
+  redirect_on_write: false
+
+dcache_layout: "gsdclayout"
 #multimaps:
 #  - scheme: "op"
 #    principal: "VO"
@@ -15,3 +28,33 @@ dcache_use_oidc: true
 #    primary: true
 #    username: "vouser"
 multimaps: []
+type: "" # backend|client|frontend|standalone
+
+# Certificate management (optional)
+dcache_manage_hostcert: false
+dcache_manage_hostkey: false
+# If using external paths, set these to absolute/local paths
+dcache_hostcert_src: ~
+dcache_hostkey_src: ~
+# If providing inline PEM via vars (e.g., Vault), set these
+dcache_hostcert_pem: ~
+dcache_hostkey_pem: ~
+# Ownership defaults (keep current behavior unless overridden)
+dcache_cert_owner: dcache
+dcache_cert_group: dcache
+dcache_key_owner: dcache
+dcache_key_group: dcache
+
+# Unified account definition; used to render both storage-authzdb and grid-vorolemap
+# Example structure:
+# dcache_accounts:
+#   - username: "cmsusers"
+#     uid: 11704
+#     gid: 1399
+#     permission: "read-write"  # default permission for entries
+#     entries:
+#       - root: "/"
+#         path: "/pnfs/sdfarm.kr/data/cms/"
+#     voms_fqans:
+#       - "/cms/Role=NULL/Capability=NULL"
+dcache_accounts: []

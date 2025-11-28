@@ -1,0 +1,22 @@
+## Common Part
+
+dcache.zookeeper.connection = {{ dcache_headnode }}:2181
+dcache.broker.scheme = satellite
+dcache.systemd.strict=false
+dcache.java.memory.heap = 4096m
+dcache.net.lan.port.min = 30000
+dcache.net.lan.port.max = 35000
+
+{% if type in ["frontend","standalone"] %}
+## 테입 시스템을 위해 설정해야 한다고 함..
+star.gid-mapping = 1399=/cms, 45000=/ops, 2688=/dteam
+xrootd.limits.threads = 50000
+dcache.authn.kerberos.realm=SDFARM.KR
+dcache.authn.hostcert.verify=true
+dcache.paths.billing=/var/log/dcache/billing
+dcache.default-retention-policy=REPLICA
+dcache.default-access-latency=ONLINE
+{% endif %}
+
+dcache.layout={{ dcache_layout }}
+

@@ -21,28 +21,70 @@
     state: present
     disable_gpg_check: true
   when: "'dcache' not in ansible_facts.packages"
-- name: Check hostcert file
-  copy: 
-    src: files/{{ ansible_hostname }}_hostcert.pem
+- name: Ensure grid-security directory exists
+  file:
+    path: /etc/grid-security
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Copy host certificate from inline var
+  copy:
+    content: "{{ dcache_hostcert_pem }}"
     dest: /etc/grid-security/hostcert.pem
-    owner: dcache
-    group: dcache
+    owner: "{{ dcache_cert_owner }}"
+    group: "{{ dcache_cert_group }}"
     mode: "0644"
-- name: Check hostkey file
-  copy: 
-    src: files/{{ ansible_hostname }}_hostkey.pem
+  when:
+    - dcache_manage_hostcert | bool
+    - dcache_hostcert_pem is defined and dcache_hostcert_pem is not none
+
+- name: Copy host certificate from source file
+  copy:
+    src: "{{ (dcache_hostcert_src | default(ansible_hostname ~ '_hostcert.pem')) }}"
+    dest: /etc/grid-security/hostcert.pem
+    owner: "{{ dcache_cert_owner }}"
+    group: "{{ dcache_cert_group }}"
+    mode: "0644"
+  when:
+    - dcache_manage_hostcert | bool
+    - dcache_hostcert_pem is not defined or dcache_hostcert_pem is none
+
+- name: Copy host private key from inline var
+  copy:
+    content: "{{ dcache_hostkey_pem }}"
     dest: /etc/grid-security/hostkey.pem
-    owner: dcache
-    group: dcache
+    owner: "{{ dcache_key_owner }}"
+    group: "{{ dcache_key_group }}"
     mode: "0400"
-- name: "Check volume_paths"
+  when:
+    - dcache_manage_hostkey | bool
+    - dcache_hostkey_pem is defined and dcache_hostkey_pem is not none
+
+- name: Copy host private key from source file
+  copy:
+    src: "{{ (dcache_hostkey_src | default(ansible_hostname ~ '_hostkey.pem')) }}"
+    dest: /etc/grid-security/hostkey.pem
+    owner: "{{ dcache_key_owner }}"
+    group: "{{ dcache_key_group }}"
+    mode: "0400"
+  when:
+    - dcache_manage_hostkey | bool
+    - dcache_hostkey_pem is not defined or dcache_hostkey_pem is none
+- name: "Check dcache_volumes"
   file:
     path: "{{ item.path }}"
     owner: dcache
     group: dcache
     state: directory
-  with_items: volume_paths
+  with_items: "{{ dcache_volumes }}"
 
 - name: Configure dcache
-  include_tasks: "{{ type }}.yml"
-
+  assert:
+    that:
+      - type in ["backend","frontend","standalone"]
+    fail_msg: "Variable 'type' must be one of: backend, frontend, standalone"
+    success_msg: "Role type '{{ type }}' is valid"
+- name: Include standalone tasks (handles all types)
+  include_tasks: "standalone.yml"

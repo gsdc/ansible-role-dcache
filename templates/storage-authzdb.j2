@@ -1,0 +1,8 @@
+version 2.1
+
+{%- for a in dcache_accounts -%}
+  {%- set default_perm = a.permission | default('read-write') -%}
+  {%- for en in a.entries -%}
+authorize {{ a.username }} {{ en.permission | default(default_perm) }} {{ a.uid }} {{ a.gid }} {{ en.root }} {{ en.path }}
+  {%- endfor -%}
+{%- endfor -%}

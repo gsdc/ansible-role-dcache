@@ -2,4 +2,32 @@
 - hosts: localhost
   remote_user: root
   roles:
-    - geonmo.xrootd
+    - role: geonmo.dcache
+      vars:
+        type: standalone
+        dcache_use_voms: true
+        dcache_accounts:
+          - username: duneprod
+            uid: 61001
+            gid: 2610
+            permission: read-write
+            entries:
+              - { root: "/", path: "/pnfs/sdfarm.kr/data/dune/" }
+            voms_fqans:
+              - "/dune/Role=production/Capability=NULL"
+          - username: dunereadonly
+            uid: 61002
+            gid: 2610
+            permission: read-only
+            entries:
+              - { root: "/", path: "/pnfs/sdfarm.kr/data/dune/" }
+            voms_fqans:
+              - "/dune/Role=NULL/Capability=NULL"
+          - username: duneops
+            uid: 61003
+            gid: 2611
+            permission: read-write
+            entries:
+              - { root: "/", path: "/" }
+            voms_fqans:
+              - "/dune/Role=pilot/Capability=NULL"

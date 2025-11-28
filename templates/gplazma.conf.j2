@@ -4,6 +4,9 @@ auth    sufficient voms
 map     optional   vorolemap
 map     optional   gridmap
 {% endif %}
+{% if dcache_use_htpasswd %}
+auth    sufficient htpasswd
+{% endif %}
 {% if dcache_use_oidc %}
 auth    sufficient oidc
 map     sufficient multimap gplazma.multimap.file=/etc/dcache/multi-mapfile

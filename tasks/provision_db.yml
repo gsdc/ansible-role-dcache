@@ -12,13 +12,13 @@
     name: "https://download.postgresql.org/pub/repos/yum/reporpms/EL-{{ ansible_distribution_major_version }}-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
     state: present
   when: not stat_yum_repo.stat.exists
-- name: Install python2-passlib for hpasswd 
-  yum:
-    name:  python2-passlib
-    state: present
-- name: Install psycopg2 for postgresql control. 
+- name: Install python3-passlib for htpasswd
   package:
-    name:  python-psycopg2
+    name: python3-passlib
+    state: present
+- name: Install psycopg2 for PostgreSQL control
+  package:
+    name: python3-psycopg2
     state: present
 - name: "Install PostgreSQL {{ psql_version }} Server"
   package: 
@@ -31,6 +31,7 @@
 - name: "Initilizing PostgreSQL DB"
   command: /usr/pgsql-{{ psql_version }}/bin/postgresql-{{ psql_version }}-setup initdb
   when: not psql_data.stat.exists  
+  notify: configure DB
 - copy: 
     dest: "/var/lib/pgsql/{{ psql_version }}/data/pg_hba.conf"
     owner: postgres

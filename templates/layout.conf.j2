@@ -1,5 +1,4 @@
-dcache.enable.space-reservation = false
-dcache.systemd.strict=false
+{% if type in ["frontend","standalone"] %}
 [zkDomain]
 [zkDomain/zookeeper]
 
@@ -19,13 +18,40 @@ nfs.loginbroker.tags = dcache-nfs
 [dCacheDomain/pinmanager]
 [dCacheDomain/billing]
 [dCacheDomain/httpd]
-[dCacheDomain/cleaner]
-[dCacheDomain/xrootd]
-xrootd.net.port=1094
-xrootd.authz.read-paths = /
-xrootd.authz.write-paths = /
-dcache.zookeeper.connection = {{ dcache_headnode }}:2181
-dcache.systemd.strict=false
+[dCacheDomain/cleaner-disk]
+[dCacheDomain/frontend]
+frontend.authn.basic=true
+frontend.authn.protocol=http
+frontend.authz.anonymous-operations=READONLY
+### Input space description name on SpaceManager for vo
+#frontend.srr.shares=cms:/cms,ops:/ops
+#######################################################
+frontend.srr.public=true
+
+
+[XRootDDomain]
+dcache.java.memory.heap=16384m
+[XRootDDomain/xrootd]
+xrootd.net.port={{ dcache_xrootd.port | default(1094) }}
+xrootd.authz.read-paths = {{ dcache_xrootd.readpath | default('/') }}
+xrootd.authz.write-paths = {{ dcache_xrootd.writepath | default('/') }}
+[WebDavDomain]
+dcache.java.memory.heap=16384m
+[WebDavDomain/transfermanagers]
+[WebDavDomain/webdav]
+webdav.cell.name={{ dcache_webdav.cellname }}
+webdav.authn.protocol={{ dcache_webdav.protocol | default('https') }}
+webdav.redirect.on-read={{ dcache_webdav.redirect_on_read | default('false') }}
+webdav.redirect.on-write={{ dcache_webdav.redirect_on_write | default('false') }}
+webdav.root = {{ dcache_webdav.root | default('/') }}
+webdav.service.transfermanager.timeout = 60
+webdav.service.pool.timeout= 60000
+webdav.limits.backlog=4096
+webdav.limits.threads.max=3000
+webdav.limits.queue-length=3000
+{% endif %}
+
+{% if type in ["backend","standalone"] %}
 {% for volume in dcache_volumes %}
 [${host.name}-{{ volume.name }}-Domain]
 [{{ volume.name }}-Domain/pool]
@@ -33,3 +59,4 @@ pool.name={{ volume.name }}
 pool.path={{ volume.path }}
 #pool.wait-for-files=${pool.path}/data
 {% endfor %}
+{% endif %}

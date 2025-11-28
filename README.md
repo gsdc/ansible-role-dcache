@@ -11,7 +11,24 @@ Any pre-requisites that may not be covered by Ansible itself or the role should 
 Role Variables
 --------------
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+Use the unified structure below instead of legacy variables.
+
+- dcache_accounts: unified source for both files. If provided, both
+  `/etc/grid-security/storage-authzdb` and `/etc/grid-security/grid-vorolemap`
+  render from this structure.
+  - Fields:
+    - username, uid, gid, permission
+    - entries: list of {root, path[, permission]}
+    - voms_fqans: list of FQAN strings (e.g., /cms/Role=NULL/Capability=NULL)
+  - Example:
+    - username: cmsusers
+      uid: 11704
+      gid: 1399
+      permission: read-write
+      entries:
+        - { root: "/", path: "/pnfs/sdfarm.kr/data/cms/" }
+      voms_fqans:
+        - "/cms/Role=NULL/Capability=NULL"
 
 Dependencies
 ------------
