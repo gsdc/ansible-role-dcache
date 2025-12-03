@@ -83,8 +83,8 @@
 - name: Configure dcache
   assert:
     that:
-      - type in ["backend","frontend","standalone"]
-    fail_msg: "Variable 'type' must be one of: backend, frontend, standalone"
-    success_msg: "Role type '{{ type }}' is valid"
+      - dcache_layout_type in ["backend","frontend","standalone"]
+    fail_msg: "Variable 'dcache_layout_type' must be one of: backend, frontend, standalone"
+    success_msg: "Role type '{{ dcache_layout_type }}' is valid"
 - name: Include standalone tasks (handles all types)
   include_tasks: "standalone.yml"

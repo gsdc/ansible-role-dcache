@@ -30,7 +30,7 @@
     owner: dcache
     group: dcache
     mode: "0644"
-  when: type in ["frontend","standalone"]
+  when: dcache_layout_type in ["frontend","standalone"]
 - name: Ensure htpasswd users when enabled
   community.general.htpasswd:
     path: /etc/dcache/htpasswd
@@ -43,14 +43,14 @@
     - { name: "vagrant", password: "vagrant" }
     - { name: "admin", password: "admin" }
   when:
-    - type in ["frontend","standalone"]
+    - dcache_layout_type in ["frontend","standalone"]
     - dcache_use_htpasswd | default(true)
 - name: Require unified accounts on doors
   assert:
     that:
       - (dcache_accounts | default([])) | length > 0
     fail_msg: "dcache_accounts must be provided to generate storage-authzdb and grid-vorolemap."
-  when: type in ["frontend","standalone"]
+  when: dcache_layout_type in ["frontend","standalone"]
 - name: Ensure each account has at least one storage entry
   assert:
     that:
@@ -60,7 +60,7 @@
   loop: "{{ dcache_accounts | default([]) }}"
   loop_control:
     label: "{{ item.username }}"
-  when: type in ["frontend","standalone"]
+  when: dcache_layout_type in ["frontend","standalone"]
 - name: Ensure each account has at least one VOMS FQAN when VOMS enabled
   assert:
     that:
@@ -71,7 +71,7 @@
   loop_control:
     label: "{{ item.username }}"
   when:
-    - type in ["frontend","standalone"]
+    - dcache_layout_type in ["frontend","standalone"]
     - dcache_use_voms | default(true)
 - name: Render storage-authzdb
   ansible.builtin.template:
@@ -80,7 +80,7 @@
     owner: dcache
     group: dcache
     mode: "0644"
-  when: type in ["frontend","standalone"]
+  when: dcache_layout_type in ["frontend","standalone"]
 - name: Render grid-vorolemap
   ansible.builtin.template:
     src: grid-vorolemap.j2
@@ -89,7 +89,7 @@
     group: dcache
     mode: "0644"
   when:
-    - type in ["frontend","standalone"]
+    - dcache_layout_type in ["frontend","standalone"]
     - dcache_use_voms | default(true)
 - name: Render multimap file
   ansible.builtin.template:
@@ -115,4 +115,4 @@
   package:
     name: xrootd-server
     state: latest
-  when: type in ["frontend","standalone"]
+  when: dcache_layout_type in ["frontend","standalone"]

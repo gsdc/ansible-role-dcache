@@ -28,7 +28,7 @@ dcache_layout: "gsdclayout"
 #    primary: true
 #    username: "vouser"
 multimaps: []
-type: "" # backend|client|frontend|standalone
+dcache_layout_type: "" # backend|client|frontend|standalone
 
 # Certificate management (optional)
 dcache_manage_hostcert: false
