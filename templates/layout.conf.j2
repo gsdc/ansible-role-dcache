@@ -1,4 +1,4 @@
-{% if type in ["frontend","standalone"] %}
+{% if dcache_layout_type in ["frontend","standalone"] %}
 [zkDomain]
 [zkDomain/zookeeper]
 
@@ -51,7 +51,7 @@ webdav.limits.threads.max=3000
 webdav.limits.queue-length=3000
 {% endif %}
 
-{% if type in ["backend","standalone"] %}
+{% if dcache_layout_type in ["backend","standalone"] %}
 {% for volume in dcache_volumes %}
 [${host.name}-{{ volume.name }}-Domain]
 [{{ volume.name }}-Domain/pool]
