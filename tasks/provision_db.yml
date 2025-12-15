@@ -41,9 +41,10 @@
     dest: "/var/lib/pgsql/{{ psql_version }}/data/pg_hba.conf"
     owner: postgres
     group: postgres
-    content: "local   all             all                                     trust\n
+    content: "
+local   all             all                                     trust\n
 host    all             all             127.0.0.1/32            trust\n
 host    all             all             ::1/128                 trust\n
-local   replication   all   peer
-host    replication   replication   192.168.124.0/24    scram-sha-256
+local   replication     all                                     peer\n
+host    replication     replication     192.168.124.0/24        scram-sha-256
 "  
