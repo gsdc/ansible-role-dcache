@@ -4,7 +4,8 @@
   register: stat_yum_repo
 - name: Provisioning PostgreSQL
   include_tasks: provision_db.yml
-- copy:
+- name: ban 파일 작성
+  copy:
     dest: /etc/dcache/ban.conf
     owner: dcache
     group: dcache
@@ -17,7 +18,8 @@
     owner: root
     group: root
     mode: "0755"
-- template:
+- name: dcache.conf 설정 파일 작성
+  template:
     src: dcache.conf.j2
     dest: /etc/dcache/dcache.conf
     owner: dcache

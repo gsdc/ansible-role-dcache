@@ -36,7 +36,8 @@
   command: /usr/pgsql-{{ psql_version }}/bin/postgresql-{{ psql_version }}-setup initdb
   when: not psql_data.stat.exists  
   notify: configure DB
-- copy: 
+- name: "pg_hba.conf 설정을 통해 DB 접근권한 수정"
+  copy: 
     dest: "/var/lib/pgsql/{{ psql_version }}/data/pg_hba.conf"
     owner: postgres
     group: postgres
