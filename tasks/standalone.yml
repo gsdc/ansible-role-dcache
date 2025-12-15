@@ -103,9 +103,10 @@
   when: 
     - dcache_use_oidc
     - multimaps | default([]) | length > 0
-- template: 
+- name: Render layout.conf 
+  template: 
     src: layout.conf.j2
-    dest: /etc/dcache/layouts/{{ dcache_layout }}.conf
+    dest: /etc/dcache/layouts/{{ dcache_layout_type }}.conf
     owner: dcache
     group: dcache
     mode: "0644"
