@@ -30,7 +30,7 @@
     state: present
 - name: "Checking the DB is ready."
   stat:
-    path: "/var/lib/pgsql/{{ psql_version }}/data"
+    path: "/var/lib/pgsql/{{ psql_version }}/data/pg_hba.conf"
   register: psql_data
 - name: "Initilizing PostgreSQL DB"
   command: /usr/pgsql-{{ psql_version }}/bin/postgresql-{{ psql_version }}-setup initdb
