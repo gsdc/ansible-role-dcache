@@ -7,7 +7,7 @@ dcache.java.memory.heap = 4096m
 dcache.net.lan.port.min = 30000
 dcache.net.lan.port.max = 35000
 
-{% if type in ["frontend","standalone"] %}
+{% if dcache_layout_type in ["frontend","standalone"] %}
 ## 테입 시스템을 위해 설정해야 한다고 함..
 star.gid-mapping = 1399=/cms, 45000=/ops, 2688=/dteam
 xrootd.limits.threads = 50000
