@@ -10,7 +10,7 @@
 - name: Import PGDG GPG key
   ansible.builtin.rpm_key:
     state: present
-    key: "https://ftp.postgresql.org/pub/repos/yum/keys/RPM-GPG-KEY-PGDG"
+    key: "https://ftp.postgresql.org/pub/repos/yum/keys/PGDG-RPM-GPG-KEY-RHEL"
 - name: Install PostgreSQL repository
   yum: 
     name: "https://download.postgresql.org/pub/repos/yum/reporpms/EL-{{ ansible_distribution_major_version }}-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
