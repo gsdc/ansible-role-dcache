@@ -4,7 +4,8 @@
     state: started                                                                                                                                                                                                
 - community.postgresql.postgresql_user:                                                                                                                                                                           
     name: dcache                                                                                                                                                                                                  
-    role_attr_flags: CREATEDB                                                                                                                                                                                     
+    role_attr_flags: "CREATEDB,NOSUPERUSER,NOCREATEROLE"
+    password: null
 - community.postgresql.postgresql_db:                                                                                                                                                                             
     name: chimera                                                                                                                                                                                                 
     login_user: dcache                                                                                                                                                                                            
