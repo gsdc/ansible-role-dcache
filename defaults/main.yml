@@ -19,7 +19,6 @@ dcache_webdav:
   redirect_on_read: false
   redirect_on_write: false
 
-dcache_layout: "gsdclayout"
 #multimaps:
 #  - scheme: "op"
 #    principal: "VO"
