@@ -54,7 +54,7 @@ webdav.limits.queue-length=3000
 {% if dcache_layout_type in ["backend","standalone"] %}
 {% for volume in dcache_volumes %}
 [${host.name}-{{ volume.name }}-Domain]
-[{{ volume.name }}-Domain/pool]
+[${host.name}-{{ volume.name }}-Domain/pool]
 pool.name={{ volume.name }}
 pool.path={{ volume.path }}
 #pool.wait-for-files=${pool.path}/data
