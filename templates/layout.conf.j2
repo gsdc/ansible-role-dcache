@@ -41,8 +41,8 @@ dcache.java.memory.heap=16384m
 [WebDavDomain/webdav]
 webdav.cell.name={{ dcache_webdav.cellname }}
 webdav.authn.protocol={{ dcache_webdav.protocol | default('https') }}
-webdav.redirect.on-read={{ dcache_webdav.redirect_on_read | default('false') }}
-webdav.redirect.on-write={{ dcache_webdav.redirect_on_write | default('false') }}
+webdav.redirect.on-read={{ dcache_webdav.redirect_on_read | default('false') | string | lower }}
+webdav.redirect.on-write={{ dcache_webdav.redirect_on_write | default('false') | string | lower }}
 webdav.root = {{ dcache_webdav.root | default('/') }}
 webdav.service.transfermanager.timeout = 60
 webdav.service.pool.timeout= 60000
