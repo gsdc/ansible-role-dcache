@@ -57,7 +57,7 @@ webdav.limits.queue-length=3000
 [${host.name}-{{ volume.name }}-Domain/pool]
 pool.name={{ volume.name }}
 pool.path={{ volume.path }}
-{% if volume.size is defined and volume.size is not none %}
+{% if volume.size is defined and volume.size %}
 pool.size={{ volume.size }}
 {% endif %}
 #pool.wait-for-files=${pool.path}/data
