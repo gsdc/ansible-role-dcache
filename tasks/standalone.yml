@@ -2,8 +2,10 @@
   stat:
     path: /etc/yum.repos.d/pgdg-redhat-all.repo
   register: stat_yum_repo
+  when: dcache_layout_type in ["frontend","standalone"]
 - name: Provisioning PostgreSQL
   include_tasks: provision_db.yml
+  when: dcache_layout_type in ["frontend","standalone"]
 - name: ban 파일 작성
   copy:
     dest: /etc/dcache/ban.conf
