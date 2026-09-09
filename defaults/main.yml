@@ -1,5 +1,12 @@
 ---
 # defaults file for geonmo.dcache
+# 사이트 표준 dcache 서비스 계정 UID/GID. 새 장비에 처음 dcache를 설치할 때
+# 이 값으로 계정을 만들어(로컬이든 LDAP이든) 항상 같은 UID/GID를 쓰도록
+# 강제한다 - 그렇지 않으면 dcache RPM의 postinstall이 호스트마다 제각각인
+# system UID로 계정을 만들어버려서, 나중에 풀 데이터 소유권이 호스트마다
+# 어긋나는 문제가 생긴다(belle-se2-disk02, belle-se2-head에서 실제로 발생).
+dcache_uid: 556951466
+dcache_gid: 556951466
 psql_version: 18
 dcache_version: 10.2.18
 dcache_volumes: 
@@ -27,7 +34,22 @@ dcache_webdav:
 #    primary: true
 #    username: "vouser"
 multimaps: []
-dcache_layout_type: "" # backend|client|frontend|standalone
+dcache_layout_type: "" # backend|frontend|standalone
+
+# frontend 타입(zookeeper/info/srr/door 등 pool이 없는 head 노드) 전용 설정.
+# belle-se2-head의 실사용 /etc/dcache/layouts/nonpool.conf 구조를 그대로
+# 옮긴 것이라, 아래 두 값은 필수(default 없음) - group_vars/host_vars에서
+# 반드시 지정해야 한다.
+# dcache_site_unique_id: "KR-KISTI-GSDC-BELLE"
+# dcache_srr_shares: "default:belle"
+# 선택 항목(지정 안 하면 아래 기본값 사용)
+# dcache_java_heap: "16384m"
+# dcache_ftp_limits_clients: 2000
+# dcache_linkgroup_authorization_file: "/etc/dcache/LinkGroupAuthorization.conf"
+# dcache_srr_storage_descriptor_path: "/dpm/sdfarm.kr/home/belle/SRR/storage-descriptor.json"
+# SRM은 더 이상 권장되지 않는 추세라 기본은 비활성. 필요한 사이트만 켠다.
+dcache_enable_srm: false
+# dcache_srm_port: 8446
 
 # Certificate management (optional)
 dcache_manage_hostcert: false

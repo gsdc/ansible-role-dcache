@@ -1,5 +1,50 @@
 ---
 # tasks file for geonmo.dcache
+# dcache 계정을 사이트 표준 UID/GID로 고정한다. 아래 없이 그냥 dcache
+# 패키지를 설치하면, 계정이 로컬/LDAP 어디에도 없을 때 RPM postinstall이
+# 호스트마다 임의의(다음으로 비어있는) system UID로 계정을 만들어버려서,
+# 호스트 간 pool 데이터 소유권이 어긋나게 된다.
+- name: dcache 계정이 이미 존재하는지(LDAP 포함) 확인
+  ansible.builtin.getent:
+    database: passwd
+    key: dcache
+  ignore_errors: true
+  register: dcache_getent
+
+- name: 로컬 dcache 시스템 그룹 생성 (계정이 전혀 없을 때만)
+  ansible.builtin.group:
+    name: dcache
+    gid: "{{ dcache_gid }}"
+    system: true
+    state: present
+  when: dcache_getent is failed
+
+- name: 로컬 dcache 시스템 계정 생성 (계정이 전혀 없을 때만)
+  ansible.builtin.user:
+    name: dcache
+    uid: "{{ dcache_uid }}"
+    group: dcache
+    system: true
+    home: /var/lib/dcache
+    create_home: false
+    shell: /bin/bash
+    state: present
+  when: dcache_getent is failed
+
+- name: dcache 계정 UID/GID가 사이트 표준과 일치하는지 검증
+  ansible.builtin.assert:
+    that:
+      - (dcache_getent.ansible_facts.getent_passwd.dcache[1] | int) == (dcache_uid | int)
+      - (dcache_getent.ansible_facts.getent_passwd.dcache[2] | int) == (dcache_gid | int)
+    fail_msg: >-
+      기존 dcache 계정의 UID/GID({{ dcache_getent.ansible_facts.getent_passwd.dcache[1] }}/
+      {{ dcache_getent.ansible_facts.getent_passwd.dcache[2] }})가 사이트 표준
+      ({{ dcache_uid }}/{{ dcache_gid }})과 다릅니다. LDAP 계정이면 LDAP 쪽을,
+      로컬 계정이면 usermod/groupmod와 기존 파일 소유권(chown -R --from)을
+      함께 맞춰주세요 - ansible이 UID를 자동으로 바꾸면 이미 그 UID로
+      쓰여진 파일들의 소유권이 깨집니다.
+  when: dcache_getent is not failed
+
 - name: Configure Java JDK
   package:
     name:

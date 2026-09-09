@@ -1,4 +1,4 @@
-{% if dcache_layout_type in ["frontend","standalone"] %}
+{% if dcache_layout_type == "standalone" %}
 [zkDomain]
 [zkDomain/zookeeper]
 
@@ -23,9 +23,6 @@ nfs.loginbroker.tags = dcache-nfs
 frontend.authn.basic=true
 frontend.authn.protocol=http
 frontend.authz.anonymous-operations=READONLY
-### Input space description name on SpaceManager for vo
-#frontend.srr.shares=cms:/cms,ops:/ops
-#######################################################
 frontend.srr.public=true
 
 
@@ -49,6 +46,78 @@ webdav.service.pool.timeout= 60000
 webdav.limits.backlog=4096
 webdav.limits.threads.max=3000
 webdav.limits.queue-length=3000
+{% endif %}
+
+{% if dcache_layout_type == "frontend" %}
+info-provider.site-unique-id={{ dcache_site_unique_id }}
+info-provider.se-unique-id={{ dcache_headnode }}
+[zookeeperDomain]
+[zookeeperDomain/zookeeper]
+
+[infoDomain]
+[infoDomain/topo]
+[infoDomain/info]
+
+[srrDomain]
+[srrDomain/frontend]
+frontend.authn.basic=true
+frontend.authn.protocol=http
+frontend.authz.anonymous-operations=READONLY
+frontend.srr.shares={{ dcache_srr_shares }}
+frontend.srr.public=true
+
+[dCacheDomain]
+dcache.broker.scheme = core
+[dCacheDomain/admin]
+[dCacheDomain/poolmanager]
+[dCacheDomain/pnfsmanager]
+pnfsmanager.enable.acl=true
+pnfsmanager.default-retention-policy = REPLICA
+pnfsmanager.default-access-latency = ONLINE
+[dCacheDomain/spacemanager]
+spacemanager.enable.space-reservation = true
+spacemanager.authz.link-group-file-name = {{ dcache_linkgroup_authorization_file | default('/etc/dcache/LinkGroupAuthorization.conf') }}
+[NFSDomain]
+[NFSDomain/nfs]
+nfs.version = 4.1
+nfs.loginbroker.tags = dcache-nfs
+
+[gPlazmaDomain]
+[gPlazmaDomain/gplazma]
+[dCacheDomain/pinmanager]
+[dCacheDomain/cleaner-disk]
+
+[billingDomain]
+[billingDomain/billing]
+
+[dCacheDomain/httpd]
+
+### ftp door는 호스트 인증서 필요
+[GridFTPDomain]
+[GridFTPDomain/ftp]
+ftp.authn.protocol=gsi
+ftp.limits.clients = {{ dcache_ftp_limits_clients | default(2000) }}
+
+[WebDAVDomain]
+[WebDAVDomain/transfermanagers]
+[WebDAVDomain/webdav]
+webdav.cell.name={{ dcache_webdav.cellname }}
+webdav.authn.protocol={{ dcache_webdav.protocol | default('https') }}
+webdav.root = {{ dcache_webdav.root | default('/') }}
+
+{% if dcache_enable_srm | default(false) %}
+### SRM은 더 이상 권장되지 않는 추세라 기본은 비활성(dcache_enable_srm)
+[SRMDomain]
+[SRMDomain/srm]
+srm.net.port = {{ dcache_srm_port | default(8446) }}
+[SRMDomain/srmmanager]
+{% endif %}
+
+[XRootDDomain]
+[XRootDDomain/xrootd]
+xrootd.net.port={{ dcache_xrootd.port | default(1094) }}
+xrootd.authz.read-paths = {{ dcache_xrootd.readpath | default('/') }}
+xrootd.authz.write-paths = {{ dcache_xrootd.writepath | default('/') }}
 {% endif %}
 
 {% if dcache_layout_type in ["backend","standalone"] %}
