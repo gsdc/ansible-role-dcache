@@ -38,6 +38,8 @@ All defaults are in [`defaults/main.yml`](defaults/main.yml).
 | `dcache_headnode` | `{{ ansible_fqdn }}` | Host running ZooKeeper. Set it to the head node FQDN on `backend` nodes. |
 | `psql_version` | `18` | PostgreSQL major version (PGDG) on `frontend`/`standalone`. |
 | `dcache_java_heap` | `4096m` | Default JVM heap for all dCache domains. |
+| `dcache_net_wan_port_min` / `dcache_net_wan_port_max` | `20000` / `25000` | WAN port range used by movers that talk to external clients. Open it in the firewall on pool nodes. The role also puts pool XRootD movers in this range (dCache 11.2 uses the LAN range for them by default); for an internal-only XRootD setup, override `pool.mover.xrootd.port.min/max` in the corresponding cell section of the layout. |
+| `dcache_net_lan_port_min` / `dcache_net_lan_port_max` | `30000` / `35000` | LAN port range for internal connections between dCache domains. |
 | `dcache_volumes` | `[]` | Pools to create on `standalone`/`backend`: list of `{name, path, size}` (`size` is optional). The role creates `path` owned by `dcache`. |
 
 ### dcache service account
@@ -110,6 +112,10 @@ the available options (`-profile`, `-prefix`, `-authz-id`, `-suppress`, ...).
 | Variable | Default | Description |
 |---|---|---|
 | `dcache_xrootd` | `{readpath: "/", writepath: "/", port: 1094}` | XRootD door settings. |
+| `dcache_xrootd_plugins` | `""` | If set, `xrootd.plugins`. dCache 11.2 default: `gplazma:ztn,gplazma:gsi,gplazma:none,authz:scitokens`. Example for a door that only accepts tokens or X.509: `gplazma:ztn,gplazma:gsi,authz:scitokens`. |
+| `dcache_xrootd_tls_mode` | `""` | If set, `xrootd.security.tls.mode` (`OFF`, `OPTIONAL`, `STRICT`; dCache default `OPTIONAL`). `STRICT` refuses clients without TLS. Any mode except `OFF` needs the host certificate on the door node. |
+| `dcache_xrootd_root` | `""` | If set, `xrootd.root`. Example: `/pnfs/example.org/data/cms`, so that CMS `/store/...` paths resolve to `/pnfs/example.org/data/cms/store/...`. |
+| `dcache_gplazma_gridmap_file` | `""` | If set, `gplazma.gridmap.file` (dCache default `/etc/grid-security/grid-mapfile`). Example: `/etc/grid-security/grid-mapfile-local`. |
 | `dcache_webdav` | `{cellname: webdav, root: "/", protocol: https, redirect_on_read: false, redirect_on_write: false}` | WebDAV door settings. |
 | `dcache_enable_srm` | `false` | Add the SRM door (`frontend` only). |
 | `dcache_srm_port` | `8446` | SRM port. |
@@ -315,6 +321,53 @@ Steps:
 The commands above are examples; see the
 [dCache Book](https://www.dcache.org/manuals/) for the pool selection unit and
 space manager in detail.
+
+CMS TFC XRootD plugin (optional)
+--------------------------------
+
+Some CMS sites run an extra XRootD door that maps CMS logical file names with
+the site's TFC (`storage.xml`), using the `cms-tfc` authorization plugin. The
+plugin is **not** part of the dCache RPM and this role does not install or
+configure it.
+
+Most sites do not need it: if every `/store/...` LFN maps to the same prefix
+(e.g. `/pnfs/example.org/data/cms/store/...`), set `dcache_xrootd_root` instead.
+The plugin is only useful when the TFC has rules that a single root cannot
+express (different prefixes per LFN area, regular expressions, ...).
+
+- Source: [dCache/xrootd4j-cms-plugin](https://github.com/dCache/xrootd4j-cms-plugin)
+  (latest tag `xrootd4j-cms-plugin-4.0.4`, last updated 2020-11). There are no
+  binary releases on GitHub, so build it yourself:
+
+  ```sh
+  git clone https://github.com/dCache/xrootd4j-cms-plugin.git
+  cd xrootd4j-cms-plugin
+  mvn package
+  ```
+
+  The plugin is built against xrootd4j 4.0.4, while dCache 11.2 ships
+  xrootd4j 4.6.7. If it does not load, try rebuilding with
+  `mvn package -Dversion.xrootd4j=4.6.7` (untested).
+
+- Install: copy the plugin directory produced under `target/` to
+  `/usr/local/share/dcache/plugins/` on the door node (one of the directories
+  in `dcache.paths.plugins`) and restart the door. If dCache cannot find it,
+  the door fails with `Authorization plugin not found: cms-tfc`.
+
+- Configure the door, for example:
+
+  ```
+  [xrootd2Domain]
+  [xrootd2Domain/xrootd]
+  xrootd.net.port=1096
+  xrootd.plugins=gplazma:none,authz:cms-tfc
+  xrootd.cms.tfc.path=/etc/dcache/storage.xml
+  xrootd.cms.tfc.protocol=direct
+  ```
+
+  The plugin defaults are `xrootd.cms.tfc.path=file:///etc/xrootd/storage.xml`
+  and `xrootd.cms.tfc.protocol=root`. The role rewrites the layout file on
+  every run, so keep a door like this in your own copy of the layout template.
 
 Known limitations
 -----------------

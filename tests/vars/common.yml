@@ -54,6 +54,10 @@ dcache_xrootd:
   readpath: "/pnfs/example.org/data"
   writepath: "/pnfs/example.org/data/cms"
   port: 1094
+dcache_xrootd_plugins: "gplazma:ztn,gplazma:gsi,authz:scitokens"
+dcache_xrootd_tls_mode: "STRICT"
+dcache_xrootd_root: "/pnfs/example.org/data/cms"
+dcache_gplazma_gridmap_file: "/etc/grid-security/grid-mapfile-local"
 dcache_webdav:
   cellname: webdav
   root: "/"

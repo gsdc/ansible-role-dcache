@@ -32,6 +32,15 @@ dcache.java.memory.heap={{ dcache_xrootd_java_heap }}
 xrootd.net.port={{ dcache_xrootd.port | default(1094) }}
 xrootd.authz.read-paths = {{ dcache_xrootd.readpath | default('/') }}
 xrootd.authz.write-paths = {{ dcache_xrootd.writepath | default('/') }}
+{% if dcache_xrootd_plugins %}
+xrootd.plugins={{ dcache_xrootd_plugins }}
+{% endif %}
+{% if dcache_xrootd_tls_mode %}
+xrootd.security.tls.mode={{ dcache_xrootd_tls_mode }}
+{% endif %}
+{% if dcache_xrootd_root %}
+xrootd.root={{ dcache_xrootd_root }}
+{% endif %}
 [WebDavDomain]
 dcache.java.memory.heap={{ dcache_webdav_java_heap }}
 [WebDavDomain/transfermanagers]
@@ -118,6 +127,15 @@ srm.net.port = {{ dcache_srm_port }}
 xrootd.net.port={{ dcache_xrootd.port | default(1094) }}
 xrootd.authz.read-paths = {{ dcache_xrootd.readpath | default('/') }}
 xrootd.authz.write-paths = {{ dcache_xrootd.writepath | default('/') }}
+{% if dcache_xrootd_plugins %}
+xrootd.plugins={{ dcache_xrootd_plugins }}
+{% endif %}
+{% if dcache_xrootd_tls_mode %}
+xrootd.security.tls.mode={{ dcache_xrootd_tls_mode }}
+{% endif %}
+{% if dcache_xrootd_root %}
+xrootd.root={{ dcache_xrootd_root }}
+{% endif %}
 {% endif %}
 
 {% if dcache_layout_type in ["backend","standalone"] %}

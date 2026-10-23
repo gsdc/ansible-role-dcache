@@ -4,8 +4,19 @@ dcache.zookeeper.connection = {{ dcache_headnode }}:2181
 dcache.broker.scheme = satellite
 dcache.systemd.strict=false
 dcache.java.memory.heap = {{ dcache_java_heap }}
-dcache.net.lan.port.min = 30000
-dcache.net.lan.port.max = 35000
+dcache.net.wan.port.min = {{ dcache_net_wan_port_min }}
+dcache.net.wan.port.max = {{ dcache_net_wan_port_max }}
+dcache.net.lan.port.min = {{ dcache_net_lan_port_min }}
+dcache.net.lan.port.max = {{ dcache_net_lan_port_max }}
+# Pool XRootD movers use the WAN range (dCache default is the LAN range):
+# clients redirected by the XRootD door connect to the pool directly.
+# For an internal-only XRootD setup, override pool.mover.xrootd.port.min/max
+# with the LAN range in the corresponding cell section of the layout.
+pool.mover.xrootd.port.min = ${dcache.net.wan.port.min}
+pool.mover.xrootd.port.max = ${dcache.net.wan.port.max}
+{% if dcache_gplazma_gridmap_file %}
+gplazma.gridmap.file={{ dcache_gplazma_gridmap_file }}
+{% endif %}
 {% if dcache_use_oidc %}
 
 {% for p in dcache_oidc_providers %}

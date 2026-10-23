@@ -13,6 +13,12 @@ dcache_version: 11.2.9
 # Example: [{name: "pool01", path: "/data/dcache/01", size: "100T"}]
 dcache_volumes: []
 dcache_headnode: "{{ ansible_fqdn }}"
+# Port ranges. WAN: movers that talk to external clients (open these in the
+# firewall). LAN: internal connections between dCache domains.
+dcache_net_wan_port_min: 20000
+dcache_net_wan_port_max: 25000
+dcache_net_lan_port_min: 30000
+dcache_net_lan_port_max: 35000
 # Default JVM heap for all dCache domains.
 dcache_java_heap: "4096m"
 dcache_use_voms: true
@@ -44,6 +50,20 @@ dcache_xrootd:
   readpath: "/"
   writepath: "/"
   port: 1094
+# XRootD door security and namespace. Empty values are not rendered, so the
+# dCache defaults apply (11.2: plugins "gplazma:ztn,gplazma:gsi,gplazma:none,
+# authz:scitokens", TLS mode OPTIONAL, root "/").
+# Example for a WLCG/CMS door that only accepts tokens or X.509 over TLS:
+# dcache_xrootd_plugins: "gplazma:ztn,gplazma:gsi,authz:scitokens"
+# dcache_xrootd_tls_mode: "STRICT"
+# dcache_xrootd_root: "/pnfs/example.org/data/cms"   # /store/... -> /pnfs/.../cms/store/...
+dcache_xrootd_plugins: ""
+dcache_xrootd_tls_mode: ""
+dcache_xrootd_root: ""
+# gPlazma grid-mapfile path (gplazma.gridmap.file). Empty: dCache default
+# /etc/grid-security/grid-mapfile.
+# Example: "/etc/grid-security/grid-mapfile-local"
+dcache_gplazma_gridmap_file: ""
 dcache_webdav:
   cellname: "webdav"
   root: "/"
