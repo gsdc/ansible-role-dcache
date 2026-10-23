@@ -63,6 +63,7 @@ When set, the role:
 | `dcache_use_voms` | `true` | Enable X.509/VOMS in gPlazma and render `/etc/grid-security/grid-vorolemap`. |
 | `dcache_use_oidc` | `false` | Enable OIDC/token authentication in gPlazma. |
 | `dcache_oidc_providers` | `[]` | **Required when `dcache_use_oidc` is true.** Trusted token issuers: list of `{name, issuer, options}`, rendered as `gplazma.oidc.provider!<name> = <issuer> <options>`. No provider is trusted by default. |
+| `dcache_oidc_audience_targets` | `https://wlcg.cern.ch/jwt/v1/any`, `<dcache_headnode>`, `https://<dcache_headnode>` | Accepted token `aud` values (`gplazma.oidc.audience-targets`). Tokens whose `aud` matches none of them are rejected. List the names clients use to reach the doors (the SE endpoint registered in CRIC), including DNS aliases and `scheme://host:port` variants such as `roots://se.example.org:1094` if needed. |
 | `dcache_use_htpasswd` | `false` | Enable htpasswd authentication in gPlazma. |
 | `dcache_htpasswd_users` | `[]` | **Required when `dcache_use_htpasswd` is true.** Users written to `/etc/dcache/htpasswd` on `frontend`/`standalone`: list of `{name, password}`. Keep passwords in Ansible Vault. |
 | `dcache_accounts` | `[]` | **Required on `frontend`/`standalone`.** Accounts used to render `storage-authzdb` and `grid-vorolemap`. |

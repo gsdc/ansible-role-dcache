@@ -11,6 +11,10 @@ dcache.net.lan.port.max = 35000
 {% for p in dcache_oidc_providers %}
 gplazma.oidc.provider!{{ p.name }} = {{ p.issuer }}{{ (' ' ~ p.options) if p.options | default('') }}
 {% endfor %}
+{% if dcache_oidc_audience_targets %}
+gplazma.oidc.audience-targets = {% for a in dcache_oidc_audience_targets %}{{ ('"' ~ a ~ '"') if ' ' in a else a }}{{ " " if not loop.last }}{% endfor %}
+
+{% endif %}
 {% endif %}
 
 {% if dcache_layout_type == "standalone" %}

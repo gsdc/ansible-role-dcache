@@ -26,6 +26,15 @@ dcache_use_voms: true
 #     options: "-profile=wlcg -prefix=/pnfs/example.org/data/cms"
 dcache_use_oidc: false
 dcache_oidc_providers: []
+# Accepted 'aud' claim values (gplazma.oidc.audience-targets). dCache rejects
+# tokens whose 'aud' matches none of these, and WLCG tokens always carry one.
+# Use the names clients use to reach the doors (the SE endpoint in CRIC); add
+# DNS aliases or scheme://host:port variants (e.g. "roots://se.example.org:1094")
+# as needed.
+dcache_oidc_audience_targets:
+  - "https://wlcg.cern.ch/jwt/v1/any"
+  - "{{ dcache_headnode }}"
+  - "https://{{ dcache_headnode }}"
 # htpasswd authentication. Users are written to /etc/dcache/htpasswd on
 # frontend/standalone nodes; keep passwords in Ansible Vault.
 # Example: [{name: "admin", password: "{{ vault_dcache_admin_password }}"}]
