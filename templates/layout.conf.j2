@@ -27,13 +27,13 @@ frontend.srr.public=true
 
 
 [XRootDDomain]
-dcache.java.memory.heap=16384m
+dcache.java.memory.heap={{ dcache_xrootd_java_heap }}
 [XRootDDomain/xrootd]
 xrootd.net.port={{ dcache_xrootd.port | default(1094) }}
 xrootd.authz.read-paths = {{ dcache_xrootd.readpath | default('/') }}
 xrootd.authz.write-paths = {{ dcache_xrootd.writepath | default('/') }}
 [WebDavDomain]
-dcache.java.memory.heap=16384m
+dcache.java.memory.heap={{ dcache_webdav_java_heap }}
 [WebDavDomain/transfermanagers]
 [WebDavDomain/webdav]
 webdav.cell.name={{ dcache_webdav.cellname }}
@@ -76,7 +76,7 @@ pnfsmanager.default-retention-policy = REPLICA
 pnfsmanager.default-access-latency = ONLINE
 [dCacheDomain/spacemanager]
 spacemanager.enable.space-reservation = true
-spacemanager.authz.link-group-file-name = {{ dcache_linkgroup_authorization_file | default('/etc/dcache/LinkGroupAuthorization.conf') }}
+spacemanager.authz.link-group-file-name = {{ dcache_linkgroup_authorization_file }}
 [NFSDomain]
 [NFSDomain/nfs]
 nfs.version = 4.1
@@ -92,11 +92,11 @@ nfs.loginbroker.tags = dcache-nfs
 
 [dCacheDomain/httpd]
 
-### ftp door는 호스트 인증서 필요
+### The FTP door requires a host certificate
 [GridFTPDomain]
 [GridFTPDomain/ftp]
 ftp.authn.protocol=gsi
-ftp.limits.clients = {{ dcache_ftp_limits_clients | default(2000) }}
+ftp.limits.clients = {{ dcache_ftp_limits_clients }}
 
 [WebDAVDomain]
 [WebDAVDomain/transfermanagers]
@@ -106,10 +106,10 @@ webdav.authn.protocol={{ dcache_webdav.protocol | default('https') }}
 webdav.root = {{ dcache_webdav.root | default('/') }}
 
 {% if dcache_enable_srm | default(false) %}
-### SRM은 더 이상 권장되지 않는 추세라 기본은 비활성(dcache_enable_srm)
+### SRM is being phased out, so it is disabled by default (dcache_enable_srm)
 [SRMDomain]
 [SRMDomain/srm]
-srm.net.port = {{ dcache_srm_port | default(8446) }}
+srm.net.port = {{ dcache_srm_port }}
 [SRMDomain/srmmanager]
 {% endif %}
 
@@ -130,8 +130,14 @@ pool.path={{ volume.path }}
 pool.size={{ volume.size }}
 {% endif %}
 pool.wait-for-files=${pool.path}/data
+{% if dcache_pool_enable_firefly %}
 pool.enable.firefly=true
-pool.firefly.excludes=134.75.0.0/16,2001:320:15:124::/64, 192.168.0.0/16
-pool.firefly.destination=127.0.0.1:10514
+{% if dcache_pool_firefly_excludes %}
+pool.firefly.excludes={{ dcache_pool_firefly_excludes | join(',') }}
+{% endif %}
+{% if dcache_pool_firefly_destination %}
+pool.firefly.destination={{ dcache_pool_firefly_destination }}
+{% endif %}
+{% endif %}
 {% endfor %}
 {% endif %}

@@ -1,25 +1,35 @@
 ---
 # tasks file for geonmo.dcache
-# dcache 계정을 사이트 표준 UID/GID로 고정한다. 아래 없이 그냥 dcache
-# 패키지를 설치하면, 계정이 로컬/LDAP 어디에도 없을 때 RPM postinstall이
-# 호스트마다 임의의(다음으로 비어있는) system UID로 계정을 만들어버려서,
-# 호스트 간 pool 데이터 소유권이 어긋나게 된다.
-- name: dcache 계정이 이미 존재하는지(LDAP 포함) 확인
+# When dcache_uid/dcache_gid are set, pin the dcache account to those IDs.
+# Without this, if the account exists neither locally nor in LDAP, the RPM
+# postinstall creates it with the next free system UID, which differs per host
+# and breaks pool data ownership across hosts.
+# When unset, all of this is skipped and the RPM default behavior applies.
+- name: Check that dcache_uid and dcache_gid are set together
+  ansible.builtin.assert:
+    that:
+      - (dcache_uid is none) == (dcache_gid is none)
+    fail_msg: "Set both dcache_uid and dcache_gid, or neither."
+
+- name: Check whether the dcache account already exists (including LDAP)
   ansible.builtin.getent:
     database: passwd
     key: dcache
   ignore_errors: true
   register: dcache_getent
+  when: dcache_uid is not none
 
-- name: 로컬 dcache 시스템 그룹 생성 (계정이 전혀 없을 때만)
+- name: Create local dcache system group (only if the account does not exist)
   ansible.builtin.group:
     name: dcache
     gid: "{{ dcache_gid }}"
     system: true
     state: present
-  when: dcache_getent is failed
+  when:
+    - dcache_uid is not none
+    - dcache_getent is failed
 
-- name: 로컬 dcache 시스템 계정 생성 (계정이 전혀 없을 때만)
+- name: Create local dcache system user (only if the account does not exist)
   ansible.builtin.user:
     name: dcache
     uid: "{{ dcache_uid }}"
@@ -29,21 +39,26 @@
     create_home: false
     shell: /bin/bash
     state: present
-  when: dcache_getent is failed
+  when:
+    - dcache_uid is not none
+    - dcache_getent is failed
 
-- name: dcache 계정 UID/GID가 사이트 표준과 일치하는지 검증
+- name: Verify that the dcache account UID/GID match dcache_uid/dcache_gid
   ansible.builtin.assert:
     that:
       - (dcache_getent.ansible_facts.getent_passwd.dcache[1] | int) == (dcache_uid | int)
       - (dcache_getent.ansible_facts.getent_passwd.dcache[2] | int) == (dcache_gid | int)
     fail_msg: >-
-      기존 dcache 계정의 UID/GID({{ dcache_getent.ansible_facts.getent_passwd.dcache[1] }}/
-      {{ dcache_getent.ansible_facts.getent_passwd.dcache[2] }})가 사이트 표준
-      ({{ dcache_uid }}/{{ dcache_gid }})과 다릅니다. LDAP 계정이면 LDAP 쪽을,
-      로컬 계정이면 usermod/groupmod와 기존 파일 소유권(chown -R --from)을
-      함께 맞춰주세요 - ansible이 UID를 자동으로 바꾸면 이미 그 UID로
-      쓰여진 파일들의 소유권이 깨집니다.
-  when: dcache_getent is not failed
+      The existing dcache account has UID/GID
+      {{ dcache_getent.ansible_facts.getent_passwd.dcache[1] }}/{{ dcache_getent.ansible_facts.getent_passwd.dcache[2] }},
+      which differs from dcache_uid/dcache_gid ({{ dcache_uid }}/{{ dcache_gid }}).
+      Fix it in LDAP for an LDAP account, or with usermod/groupmod plus
+      chown -R --from for existing files for a local account. The role does not
+      change the UID automatically, since that would break ownership of files
+      already written with the old UID.
+  when:
+    - dcache_uid is not none
+    - dcache_getent is not failed
 
 - name: Configure Java JDK
   package:
@@ -131,5 +146,12 @@
       - dcache_layout_type in ["backend","frontend","standalone"]
     fail_msg: "Variable 'dcache_layout_type' must be one of: backend, frontend, standalone"
     success_msg: "Role type '{{ dcache_layout_type }}' is valid"
+- name: Check required variables for the frontend layout
+  assert:
+    that:
+      - dcache_site_unique_id is defined and dcache_site_unique_id
+      - dcache_srr_shares is defined and dcache_srr_shares
+    fail_msg: "The frontend layout requires dcache_site_unique_id and dcache_srr_shares."
+  when: dcache_layout_type == "frontend"
 - name: Include standalone tasks (handles all types)
   include_tasks: "standalone.yml"

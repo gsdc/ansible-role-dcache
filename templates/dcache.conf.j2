@@ -3,15 +3,20 @@
 dcache.zookeeper.connection = {{ dcache_headnode }}:2181
 dcache.broker.scheme = satellite
 dcache.systemd.strict=false
-dcache.java.memory.heap = {{ dcache_java_heap | default('4096m') }}
+dcache.java.memory.heap = {{ dcache_java_heap }}
 dcache.net.lan.port.min = 30000
 dcache.net.lan.port.max = 35000
 
 {% if dcache_layout_type == "standalone" %}
-## 테입 시스템을 위해 설정해야 한다고 함..
-star.gid-mapping = 1399=/cms, 45000=/ops, 2688=/dteam
+{% if dcache_star_gid_mapping %}
+## Required for tape (STAR) integration
+star.gid-mapping = {% for gid, path in dcache_star_gid_mapping.items() %}{{ gid }}={{ path }}{{ ", " if not loop.last }}{% endfor %}
+
+{% endif %}
 xrootd.limits.threads = 50000
-dcache.authn.kerberos.realm=SDFARM.KR
+{% if dcache_kerberos_realm %}
+dcache.authn.kerberos.realm={{ dcache_kerberos_realm }}
+{% endif %}
 dcache.authn.hostcert.verify=true
 #dcache.paths.billing=/var/log/dcache/billing
 dcache.default-retention-policy=REPLICA
@@ -19,7 +24,7 @@ dcache.default-access-latency=ONLINE
 {% endif %}
 
 {% if dcache_layout_type == "frontend" %}
-{% if dcache_srr_storage_descriptor_path is defined and dcache_srr_storage_descriptor_path %}
+{% if dcache_srr_storage_descriptor_path %}
 storage-descriptor.output.path = {{ dcache_srr_storage_descriptor_path }}
 {% endif %}
 {% endif %}

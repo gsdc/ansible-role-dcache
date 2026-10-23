@@ -1,0 +1,15 @@
+---
+# Pool-only node attached to the head node from test-frontend.yml.
+# Set dcache_headnode to that host's FQDN.
+- hosts: localhost
+  remote_user: root
+  vars_files:
+    - vars/common.yml
+  roles:
+    - role: geonmo.dcache
+      vars:
+        dcache_layout_type: backend
+        dcache_headnode: "dcache-head.example.org"
+        dcache_volumes:
+          - { name: "{{ ansible_hostname }}-pool01", path: "/srv/dcache/pool01" }
+          - { name: "{{ ansible_hostname }}-pool02", path: "/srv/dcache/pool02", size: "10G" }

@@ -1,20 +1,27 @@
 ---
 # defaults file for geonmo.dcache
-# 사이트 표준 dcache 서비스 계정 UID/GID. 새 장비에 처음 dcache를 설치할 때
-# 이 값으로 계정을 만들어(로컬이든 LDAP이든) 항상 같은 UID/GID를 쓰도록
-# 강제한다 - 그렇지 않으면 dcache RPM의 postinstall이 호스트마다 제각각인
-# system UID로 계정을 만들어버려서, 나중에 풀 데이터 소유권이 호스트마다
-# 어긋나는 문제가 생긴다(belle-se2-disk02, belle-se2-head에서 실제로 발생).
-dcache_uid: 556951466
-dcache_gid: 556951466
+# Site-wide UID/GID for the dcache service account. When set, the role creates
+# the account with these IDs before installing dCache (unless it already exists
+# locally or in LDAP) and fails if an existing account has different IDs.
+# When unset (~), the dcache RPM postinstall creates it with whatever system UID
+# is free on each host, so multi-node sites should set these to keep pool data
+# ownership consistent across hosts. Set both or neither.
+dcache_uid: ~
+dcache_gid: ~
 psql_version: 18
-dcache_version: 10.2.18
-dcache_volumes: 
-  - {name:"ngnu01-pool", path:"/ngnu/dcache/01"}
+dcache_version: 11.2.9
+# Example: [{name: "pool01", path: "/data/dcache/01", size: "100T"}]
+dcache_volumes: []
 dcache_headnode: "{{ ansible_fqdn }}"
+# Default JVM heap for all dCache domains.
+dcache_java_heap: "4096m"
 dcache_use_voms: true
 dcache_use_oidc: true
-dcache_use_htpasswd: true
+# htpasswd authentication. Users are written to /etc/dcache/htpasswd on
+# frontend/standalone nodes; keep passwords in Ansible Vault.
+# Example: [{name: "admin", password: "{{ vault_dcache_admin_password }}"}]
+dcache_use_htpasswd: false
+dcache_htpasswd_users: []
 dcache_xrootd:
   readpath: "/"
   writepath: "/"
@@ -36,20 +43,37 @@ dcache_webdav:
 multimaps: []
 dcache_layout_type: "" # backend|frontend|standalone
 
-# frontend 타입(zookeeper/info/srr/door 등 pool이 없는 head 노드) 전용 설정.
-# belle-se2-head의 실사용 /etc/dcache/layouts/nonpool.conf 구조를 그대로
-# 옮긴 것이라, 아래 두 값은 필수(default 없음) - group_vars/host_vars에서
-# 반드시 지정해야 한다.
-# dcache_site_unique_id: "KR-KISTI-GSDC-BELLE"
-# dcache_srr_shares: "default:belle"
-# 선택 항목(지정 안 하면 아래 기본값 사용)
-# dcache_java_heap: "16384m"
-# dcache_ftp_limits_clients: 2000
-# dcache_linkgroup_authorization_file: "/etc/dcache/LinkGroupAuthorization.conf"
-# dcache_srr_storage_descriptor_path: "/dpm/sdfarm.kr/home/belle/SRR/storage-descriptor.json"
-# SRM은 더 이상 권장되지 않는 추세라 기본은 비활성. 필요한 사이트만 켠다.
+# Settings for the "frontend" layout (head node without pools: zookeeper, info,
+# SRR, doors, ...). The following two are required and have no default since
+# they are site/VO specific - set them in group_vars/host_vars.
+# dcache_site_unique_id: "EXAMPLE-SITE"
+# dcache_srr_shares: "default:myvo"
+dcache_ftp_limits_clients: 2000
+dcache_linkgroup_authorization_file: "/etc/dcache/LinkGroupAuthorization.conf"
+# If set, written to storage-descriptor.output.path.
+# Example: "/pnfs/example.org/data/SRR/storage-descriptor.json"
+dcache_srr_storage_descriptor_path: ""
+# SRM is being phased out, so it is disabled by default. Enable only if needed.
 dcache_enable_srm: false
-# dcache_srm_port: 8446
+dcache_srm_port: 8446
+
+# "standalone" layout only. Empty values are not rendered (dCache defaults apply).
+# dcache_kerberos_realm: "EXAMPLE.ORG"
+dcache_kerberos_realm: ""
+# JVM heap of the XRootD and WebDAV door domains.
+dcache_xrootd_java_heap: "16384m"
+dcache_webdav_java_heap: "16384m"
+# GID -> path mapping for tape (STAR) integration. Example: {1399: "/cms", 45000: "/ops"}
+dcache_star_gid_mapping: {}
+
+# Pool firefly (SciTags transfer flow marking, dCache >= 11.2.4 recommended).
+# Fireflies always go to the transfer peer on UDP 10514; the destination below
+# receives an additional copy (default: the global SciTags collector run by ESnet).
+# Set it to "" to send only to the transfer peer.
+dcache_pool_enable_firefly: false
+# Networks to skip, e.g. internal transfers: ["10.0.0.0/8", "192.168.0.0/16"]
+dcache_pool_firefly_excludes: []
+dcache_pool_firefly_destination: "collector.scitags.org:10514"
 
 # Certificate management (optional)
 dcache_manage_hostcert: false
@@ -75,7 +99,7 @@ dcache_key_group: dcache
 #     permission: "read-write"  # default permission for entries
 #     entries:
 #       - root: "/"
-#         path: "/pnfs/sdfarm.kr/data/cms/"
+#         path: "/pnfs/example.org/data/cms/"
 #     voms_fqans:
 #       - "/cms/Role=NULL/Capability=NULL"
 dcache_accounts: []

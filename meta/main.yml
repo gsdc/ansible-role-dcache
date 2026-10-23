@@ -1,7 +1,7 @@
 galaxy_info:
   role_name: dcache
   author: Geonmo Ryu
-  description: Install dCache cluster for GSDC system
+  description: Install and configure dCache (head, pool and standalone nodes)
   company: Korea Institute of Science and Technology Information(KISTI)
 
   # If the issue tracker for your role is not on github, uncomment the

@@ -1,0 +1,62 @@
+---
+# Values shared by all test playbooks. They only use documentation/example
+# names and private address ranges, so the tests can run on any host.
+dcache_uid: 2000
+dcache_gid: 2000
+
+dcache_use_voms: true
+dcache_use_oidc: true
+dcache_use_htpasswd: true
+# Test-only credentials; use Ansible Vault for real passwords.
+dcache_htpasswd_users:
+  - { name: "testadmin", password: "changeme" }
+
+dcache_accounts:
+  - username: duneprod
+    uid: 61001
+    gid: 2610
+    permission: read-write
+    entries:
+      - { root: "/", path: "/pnfs/example.org/data/dune/" }
+    voms_fqans:
+      - "/dune/Role=production/Capability=NULL"
+  - username: dunereadonly
+    uid: 61002
+    gid: 2610
+    permission: read-only
+    entries:
+      - { root: "/", path: "/pnfs/example.org/data/dune/" }
+    voms_fqans:
+      - "/dune/Role=NULL/Capability=NULL"
+  - username: duneops
+    uid: 61003
+    gid: 2611
+    permission: read-write
+    entries:
+      - { root: "/", path: "/" }
+      - { root: "/", path: "/pnfs/example.org/data/dune/scratch/", permission: read-only }
+    voms_fqans:
+      - "/dune/Role=pilot/Capability=NULL"
+
+multimaps:
+  - scheme: op
+    principal: DUNE
+    uid: 61001
+    gid: 2610
+    primary: true
+    username: duneprod
+
+dcache_xrootd:
+  readpath: "/pnfs/example.org/data"
+  writepath: "/pnfs/example.org/data/dune"
+  port: 1094
+dcache_webdav:
+  cellname: webdav
+  root: "/"
+  protocol: https
+  redirect_on_read: true
+  redirect_on_write: false
+
+dcache_pool_enable_firefly: true
+dcache_pool_firefly_excludes: ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
+dcache_pool_firefly_destination: "collector.scitags.org:10514"

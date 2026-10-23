@@ -6,7 +6,7 @@
 - name: Provisioning PostgreSQL
   include_tasks: provision_db.yml
   when: dcache_layout_type in ["frontend","standalone"]
-- name: ban 파일 작성
+- name: Create ban.conf
   copy:
     dest: /etc/dcache/ban.conf
     owner: dcache
@@ -20,7 +20,7 @@
     owner: root
     group: root
     mode: "0755"
-- name: dcache.conf 설정 파일 작성
+- name: Render dcache.conf
   template:
     src: dcache.conf.j2
     dest: /etc/dcache/dcache.conf
@@ -35,6 +35,14 @@
     group: dcache
     mode: "0644"
   when: dcache_layout_type in ["frontend","standalone"]
+- name: Require htpasswd users when htpasswd is enabled
+  assert:
+    that:
+      - dcache_htpasswd_users | length > 0
+    fail_msg: "dcache_htpasswd_users must be provided when dcache_use_htpasswd=true."
+  when:
+    - dcache_layout_type in ["frontend","standalone"]
+    - dcache_use_htpasswd
 - name: Ensure htpasswd users when enabled
   community.general.htpasswd:
     path: /etc/dcache/htpasswd
@@ -42,13 +50,14 @@
     password: "{{ item.password }}"
     owner: dcache
     group: dcache
-    mode: 0640
-  loop:
-    - { name: "vagrant", password: "vagrant" }
-    - { name: "admin", password: "admin" }
+    mode: "0640"
+  loop: "{{ dcache_htpasswd_users }}"
+  loop_control:
+    label: "{{ item.name }}"
+  no_log: true
   when:
     - dcache_layout_type in ["frontend","standalone"]
-    - dcache_use_htpasswd | default(true)
+    - dcache_use_htpasswd
 - name: Require unified accounts on doors
   assert:
     that:

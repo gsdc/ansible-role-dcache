@@ -1,33 +1,18 @@
 ---
+# All-in-one node: core services, doors and pools on one host.
 - hosts: localhost
   remote_user: root
+  vars_files:
+    - vars/common.yml
   roles:
     - role: geonmo.dcache
       vars:
-        type: standalone
-        dcache_use_voms: true
-        dcache_accounts:
-          - username: duneprod
-            uid: 61001
-            gid: 2610
-            permission: read-write
-            entries:
-              - { root: "/", path: "/pnfs/sdfarm.kr/data/dune/" }
-            voms_fqans:
-              - "/dune/Role=production/Capability=NULL"
-          - username: dunereadonly
-            uid: 61002
-            gid: 2610
-            permission: read-only
-            entries:
-              - { root: "/", path: "/pnfs/sdfarm.kr/data/dune/" }
-            voms_fqans:
-              - "/dune/Role=NULL/Capability=NULL"
-          - username: duneops
-            uid: 61003
-            gid: 2611
-            permission: read-write
-            entries:
-              - { root: "/", path: "/" }
-            voms_fqans:
-              - "/dune/Role=pilot/Capability=NULL"
+        dcache_layout_type: standalone
+        dcache_java_heap: "2048m"
+        dcache_xrootd_java_heap: "1024m"
+        dcache_webdav_java_heap: "1024m"
+        dcache_kerberos_realm: "EXAMPLE.ORG"
+        dcache_star_gid_mapping: {2610: "/dune", 2611: "/dune"}
+        dcache_volumes:
+          - { name: "test-pool01", path: "/srv/dcache/pool01" }
+          - { name: "test-pool02", path: "/srv/dcache/pool02", size: "10G" }
