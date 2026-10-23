@@ -123,6 +123,7 @@ the available options (`-profile`, `-prefix`, `-authz-id`, `-suppress`, ...).
 | `dcache_srr_shares` | — | **Required on `frontend`.** `frontend.srr.shares`, e.g. `default:cms`. |
 | `dcache_srr_storage_descriptor_path` | `""` | If set, `storage-descriptor.output.path`. |
 | `dcache_linkgroup_authorization_file` | `/etc/dcache/LinkGroupAuthorization.conf` | Space manager link group authorization file. |
+| `dcache_linkgroup_authorizations` | `[{name: default_linkGroup, fqans: ["/*/Role=*"]}]` | Link groups and the FQANs allowed to reserve space in them, rendered into `dcache_linkgroup_authorization_file`. The link groups themselves must still be created in the admin interface. |
 
 ### Standalone layout
 
@@ -272,13 +273,17 @@ Steps:
    save
    ```
 
-3. Allow VOs to use the link group in `/etc/dcache/LinkGroupAuthorization.conf`
-   (path set by `dcache_linkgroup_authorization_file`; the role does not create
-   this file):
+3. Allow VOs to reserve space in the link group. The role writes
+   `/etc/dcache/LinkGroupAuthorization.conf` (`dcache_linkgroup_authorization_file`)
+   on the `frontend` node from `dcache_linkgroup_authorizations`; use the same
+   link group names as in step 2 and re-run the role:
 
-   ```
-   LinkGroup cms-linkgroup
-   /cms/Role=*
+   ```yaml
+   dcache_linkgroup_authorizations:
+     - name: cms-linkgroup
+       fqans: ["/cms/Role=*"]
+     - name: default_linkGroup
+       fqans: ["/*/Role=*"]
    ```
 
 4. In the `SpaceManager` cell, check that the link group shows the expected

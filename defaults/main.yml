@@ -68,6 +68,12 @@ dcache_layout_type: "" # backend|frontend|standalone
 # dcache_srr_shares: "default:cms"
 dcache_ftp_limits_clients: 2000
 dcache_linkgroup_authorization_file: "/etc/dcache/LinkGroupAuthorization.conf"
+# Link groups and the FQANs allowed to reserve space in them; rendered into
+# dcache_linkgroup_authorization_file. Link groups themselves are created
+# manually in the admin interface (see README).
+dcache_linkgroup_authorizations:
+  - name: default_linkGroup
+    fqans: ["/*/Role=*"]
 # If set, written to storage-descriptor.output.path.
 # Example: "/pnfs/example.org/data/SRR/storage-descriptor.json"
 dcache_srr_storage_descriptor_path: ""

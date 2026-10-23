@@ -1,3 +1,8 @@
 #SpaceManagerLinkGroupAuthorizationFile
-LinkGroup default_linkGroup
-/*/Role=*
+{% for lg in dcache_linkgroup_authorizations %}
+
+LinkGroup {{ lg.name }}
+{% for f in lg.fqans %}
+{{ f }}
+{% endfor %}
+{% endfor %}

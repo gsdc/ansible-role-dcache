@@ -15,3 +15,8 @@
         dcache_ftp_limits_clients: 500
         dcache_enable_srm: true
         dcache_srm_port: 8446
+        dcache_linkgroup_authorizations:
+          - name: readonly_linkGroup
+            fqans: ["/cms/Role=*"]
+          - name: default_linkGroup
+            fqans: ["/*/Role=*"]
