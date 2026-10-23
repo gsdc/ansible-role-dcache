@@ -16,7 +16,16 @@ dcache_headnode: "{{ ansible_fqdn }}"
 # Default JVM heap for all dCache domains.
 dcache_java_heap: "4096m"
 dcache_use_voms: true
-dcache_use_oidc: true
+# OIDC/token authentication. Each provider becomes a
+# gplazma.oidc.provider!<name> = <issuer> <options> line in dcache.conf;
+# map users with `multimaps` (scheme "op", principal = provider name) or with
+# -authz-id in options. Example (CMS):
+# dcache_oidc_providers:
+#   - name: cms
+#     issuer: "https://cms-auth.cern.ch/"
+#     options: "-profile=wlcg -prefix=/pnfs/example.org/data/cms"
+dcache_use_oidc: false
+dcache_oidc_providers: []
 # htpasswd authentication. Users are written to /etc/dcache/htpasswd on
 # frontend/standalone nodes; keep passwords in Ansible Vault.
 # Example: [{name: "admin", password: "{{ vault_dcache_admin_password }}"}]
@@ -35,11 +44,11 @@ dcache_webdav:
 
 #multimaps:
 #  - scheme: "op"
-#    principal: "VO"
-#    uid: 50000
-#    gid: 50000
+#    principal: "cms"
+#    uid: 61001
+#    gid: 2610
 #    primary: true
-#    username: "vouser"
+#    username: "cmsprod"
 multimaps: []
 dcache_layout_type: "" # backend|frontend|standalone
 
@@ -47,7 +56,7 @@ dcache_layout_type: "" # backend|frontend|standalone
 # SRR, doors, ...). The following two are required and have no default since
 # they are site/VO specific - set them in group_vars/host_vars.
 # dcache_site_unique_id: "EXAMPLE-SITE"
-# dcache_srr_shares: "default:myvo"
+# dcache_srr_shares: "default:cms"
 dcache_ftp_limits_clients: 2000
 dcache_linkgroup_authorization_file: "/etc/dcache/LinkGroupAuthorization.conf"
 # If set, written to storage-descriptor.output.path.
@@ -63,7 +72,7 @@ dcache_kerberos_realm: ""
 # JVM heap of the XRootD and WebDAV door domains.
 dcache_xrootd_java_heap: "16384m"
 dcache_webdav_java_heap: "16384m"
-# GID -> path mapping for tape (STAR) integration. Example: {1399: "/cms", 45000: "/ops"}
+# GID -> path mapping for tape (STAR) integration. Example: {2610: "/cms"}
 dcache_star_gid_mapping: {}
 
 # Pool firefly (SciTags transfer flow marking, dCache >= 11.2.4 recommended).
@@ -93,13 +102,13 @@ dcache_key_group: dcache
 # Unified account definition; used to render both storage-authzdb and grid-vorolemap
 # Example structure:
 # dcache_accounts:
-#   - username: "cmsusers"
-#     uid: 11704
-#     gid: 1399
+#   - username: "cmsprod"
+#     uid: 61001
+#     gid: 2610
 #     permission: "read-write"  # default permission for entries
 #     entries:
 #       - root: "/"
 #         path: "/pnfs/example.org/data/cms/"
 #     voms_fqans:
-#       - "/cms/Role=NULL/Capability=NULL"
+#       - "/cms/Role=production/Capability=NULL"
 dcache_accounts: []

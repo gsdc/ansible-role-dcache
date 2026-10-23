@@ -6,6 +6,12 @@ dcache.systemd.strict=false
 dcache.java.memory.heap = {{ dcache_java_heap }}
 dcache.net.lan.port.min = 30000
 dcache.net.lan.port.max = 35000
+{% if dcache_use_oidc %}
+
+{% for p in dcache_oidc_providers %}
+gplazma.oidc.provider!{{ p.name }} = {{ p.issuer }}{{ (' ' ~ p.options) if p.options | default('') }}
+{% endfor %}
+{% endif %}
 
 {% if dcache_layout_type == "standalone" %}
 {% if dcache_star_gid_mapping %}

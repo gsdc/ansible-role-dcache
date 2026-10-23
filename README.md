@@ -61,7 +61,8 @@ When set, the role:
 | Variable | Default | Description |
 |---|---|---|
 | `dcache_use_voms` | `true` | Enable X.509/VOMS in gPlazma and render `/etc/grid-security/grid-vorolemap`. |
-| `dcache_use_oidc` | `true` | Enable OIDC in gPlazma; uses `multimaps` for mapping. |
+| `dcache_use_oidc` | `false` | Enable OIDC/token authentication in gPlazma. |
+| `dcache_oidc_providers` | `[]` | **Required when `dcache_use_oidc` is true.** Trusted token issuers: list of `{name, issuer, options}`, rendered as `gplazma.oidc.provider!<name> = <issuer> <options>`. No provider is trusted by default. |
 | `dcache_use_htpasswd` | `false` | Enable htpasswd authentication in gPlazma. |
 | `dcache_htpasswd_users` | `[]` | **Required when `dcache_use_htpasswd` is true.** Users written to `/etc/dcache/htpasswd` on `frontend`/`standalone`: list of `{name, password}`. Keep passwords in Ansible Vault. |
 | `dcache_accounts` | `[]` | **Required on `frontend`/`standalone`.** Accounts used to render `storage-authzdb` and `grid-vorolemap`. |
@@ -71,28 +72,37 @@ When set, the role:
 
 ```yaml
 dcache_accounts:
-  - username: cmsusers
-    uid: 11704
-    gid: 1399
+  - username: cmsprod
+    uid: 61001
+    gid: 2610
     permission: read-write          # default for all entries (read-write | read-only)
     entries:                        # at least one
       - { root: "/", path: "/pnfs/example.org/data/cms/" }
-      - { root: "/", path: "/pnfs/example.org/data/cms/store/", permission: read-only }
+      - { root: "/", path: "/pnfs/example.org/data/cms/archive/", permission: read-only }
     voms_fqans:                     # required when dcache_use_voms is true
-      - "/cms/Role=NULL/Capability=NULL"
+      - "/cms/Role=production/Capability=NULL"
 ```
 
-`multimaps` entries:
+`dcache_oidc_providers` and `multimaps` entries (tokens from the CMS issuer are
+mapped to the `cmsprod` account):
 
 ```yaml
+dcache_use_oidc: true
+dcache_oidc_providers:
+  - name: cms
+    issuer: "https://cms-auth.cern.ch/"
+    options: "-profile=wlcg -prefix=/pnfs/example.org/data/cms"   # optional
 multimaps:
-  - scheme: op                      # multimap principal type
-    principal: MYVO                 # value to match
-    uid: 50000
-    gid: 50000
+  - scheme: op                      # OIDC provider principal
+    principal: cms                  # provider name from dcache_oidc_providers
+    uid: 61001
+    gid: 2610
     primary: true
-    username: vouser
+    username: cmsprod
 ```
+
+See the `gplazma.oidc.provider` section of dCache's `gplazma.properties` for
+the available options (`-profile`, `-prefix`, `-authz-id`, `-suppress`, ...).
 
 ### Doors
 
@@ -109,7 +119,7 @@ multimaps:
 | Variable | Default | Description |
 |---|---|---|
 | `dcache_site_unique_id` | — | **Required on `frontend`.** `info-provider.site-unique-id`, e.g. `EXAMPLE-SITE`. |
-| `dcache_srr_shares` | — | **Required on `frontend`.** `frontend.srr.shares`, e.g. `default:myvo`. |
+| `dcache_srr_shares` | — | **Required on `frontend`.** `frontend.srr.shares`, e.g. `default:cms`. |
 | `dcache_srr_storage_descriptor_path` | `""` | If set, `storage-descriptor.output.path`. |
 | `dcache_linkgroup_authorization_file` | `/etc/dcache/LinkGroupAuthorization.conf` | Space manager link group authorization file. |
 
@@ -120,7 +130,7 @@ multimaps:
 | `dcache_kerberos_realm` | `""` | If set, `dcache.authn.kerberos.realm`. |
 | `dcache_xrootd_java_heap` | `16384m` | JVM heap of the XRootD door domain. |
 | `dcache_webdav_java_heap` | `16384m` | JVM heap of the WebDAV door domain. |
-| `dcache_star_gid_mapping` | `{}` | If set, `star.gid-mapping` for tape integration, e.g. `{1399: "/cms", 45000: "/ops"}`. |
+| `dcache_star_gid_mapping` | `{}` | If set, `star.gid-mapping` for tape integration, e.g. `{2610: "/cms"}`. |
 
 ### Pool flow marking (SciTags fireflies)
 
@@ -157,13 +167,13 @@ dcache_uid: 2000
 dcache_gid: 2000
 dcache_headnode: dcache-head.example.org
 dcache_accounts:
-  - username: myvo
-    uid: 30000
-    gid: 30000
+  - username: cmsprod
+    uid: 61001
+    gid: 2610
     entries:
-      - { root: "/", path: "/pnfs/example.org/data/myvo/" }
+      - { root: "/", path: "/pnfs/example.org/data/cms/" }
     voms_fqans:
-      - "/myvo/Role=NULL/Capability=NULL"
+      - "/cms/Role=production/Capability=NULL"
 ```
 
 ```yaml
@@ -175,7 +185,7 @@ dcache_accounts:
       vars:
         dcache_layout_type: frontend
         dcache_site_unique_id: EXAMPLE-SITE
-        dcache_srr_shares: "default:myvo"
+        dcache_srr_shares: "default:cms"
         dcache_manage_hostcert: true
         dcache_manage_hostkey: true
 
@@ -201,7 +211,7 @@ example names and private address ranges.
 
 | Playbook | Layout | Covers |
 |---|---|---|
-| `test.yml` | `standalone` | Fixed UID/GID, accounts with per-entry permissions, OIDC multimap, XRootD/WebDAV settings, Kerberos realm, STAR GID mapping, two pools with fireflies |
+| `test.yml` | `standalone` | Fixed UID/GID, accounts with per-entry permissions, OIDC provider and multimap, XRootD/WebDAV settings, Kerberos realm, STAR GID mapping, two pools with fireflies |
 | `test-frontend.yml` | `frontend` | Required SRR/info-provider values, storage descriptor, GridFTP limit, SRM enabled |
 | `test-backend.yml` | `backend` | Pools attached to a remote head node, fireflies |
 
@@ -211,11 +221,102 @@ Run each on a fresh EL host (as root):
 ansible-playbook -i tests/inventory tests/test.yml
 ```
 
+Manual post-installation steps
+------------------------------
+
+The role does **not** configure the pool selection unit or space reservations.
+After the first deployment, log in to the admin interface on the head node
+(`frontend`/`standalone`) and set them up by hand.
+
+**The order matters.** The SRR (storage resource reporting) endpoint only
+reports capacity for space that has been reserved, so the storage shows up
+with no capacity until all of the following are done, in this order:
+
+> pools → pool group (`pgroup`) → link → link group → link group capacity
+> visible in `SpaceManager` → space reserved for each project (VO) quota →
+> `WriteToken` tag set on the project directory in Chimera
+
+Space reservation (steps 3-5) is optional: dCache stores data without it, and
+if you do not need capacity reporting in SRR you can stop after step 2. It is
+still recommended, since SRR is what WLCG uses to account for the storage and
+reservations give each project (VO) its own quota.
+
+Steps:
+
+1. Allow admin login: put your SSH public key in
+   `/etc/dcache/admin/authorized_keys2` on the head node, then connect:
+
+   ```sh
+   ssh -p 22224 admin@dcache-head.example.org
+   ```
+
+2. Put the pools in a pool group, attach it to a link and the link to a link
+   group in the `PoolManager` cell, then `save` so the setup is written to
+   `/var/lib/dcache/config/poolmanager.conf`:
+
+   ```
+   \c PoolManager
+   psu create pgroup cms-pools
+   psu addto pgroup cms-pools <pool-name>
+   psu create unit -store cms:cms@osm
+   psu create ugroup cms-units
+   psu addto ugroup cms-units cms:cms@osm
+   psu create link cms-link cms-units world-net
+   psu set link cms-link -readpref=10 -writepref=10 -cachepref=10 -p2ppref=-1
+   psu addto link cms-link cms-pools
+   psu create linkGroup cms-linkgroup
+   psu set linkGroup replicaAllowed cms-linkgroup true
+   psu set linkGroup onlineAllowed cms-linkgroup true
+   psu addto linkGroup cms-linkgroup cms-link
+   save
+   ```
+
+3. Allow VOs to use the link group in `/etc/dcache/LinkGroupAuthorization.conf`
+   (path set by `dcache_linkgroup_authorization_file`; the role does not create
+   this file):
+
+   ```
+   LinkGroup cms-linkgroup
+   /cms/Role=*
+   ```
+
+4. In the `SpaceManager` cell, check that the link group shows the expected
+   free space, then reserve the project quota in it. Once the reservation
+   exists, its capacity appears in SRR.
+
+   ```
+   \c SpaceManager
+   ls link groups
+   reserve space -owner=/cms -desc=CMS -lg=cms-linkgroup -al=online -rp=replica 100T
+   ls spaces
+   ```
+
+   If the link group shows no free space, the pools are not reachable through
+   it yet; recheck step 2 (pool group membership, link and link group).
+
+5. Bind the project directory to the reservation: open the Chimera shell and
+   set the `WriteToken` directory tag to the space token ID shown by
+   `ls spaces` (first column). New files written below the directory then go
+   into that reservation. This is the last step.
+
+   ```
+   chimera
+   mkdir /pnfs/example.org/data/cms          (skip if it already exists)
+   writetag /pnfs/example.org/data/cms WriteToken <space-token-id>
+   readtag /pnfs/example.org/data/cms WriteToken
+   ```
+
+The commands above are examples; see the
+[dCache Book](https://www.dcache.org/manuals/) for the pool selection unit and
+space manager in detail.
+
 Known limitations
 -----------------
 
 - dCache is restarted (`dcache restart`) on every run.
 - The dCache RPM is not upgraded if any version is already installed.
+- Links, link groups and space reservations are not managed by the role; see [Manual post-installation steps](#manual-post-installation-steps).
+- Disk-only sites are assumed (e.g. WLCG Tier-2): only `cleaner-disk` is deployed. Sites with tape (HSM) pools need to add `cleaner-hsm` and the HSM settings themselves.
 
 License
 -------

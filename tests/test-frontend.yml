@@ -9,7 +9,7 @@
       vars:
         dcache_layout_type: frontend
         dcache_site_unique_id: "EXAMPLE-SITE"
-        dcache_srr_shares: "default:dune"
+        dcache_srr_shares: "default:cms"
         dcache_srr_storage_descriptor_path: "/pnfs/example.org/data/SRR/storage-descriptor.json"
         dcache_java_heap: "2048m"
         dcache_ftp_limits_clients: 500

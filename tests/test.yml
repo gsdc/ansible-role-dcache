@@ -12,7 +12,7 @@
         dcache_xrootd_java_heap: "1024m"
         dcache_webdav_java_heap: "1024m"
         dcache_kerberos_realm: "EXAMPLE.ORG"
-        dcache_star_gid_mapping: {2610: "/dune", 2611: "/dune"}
+        dcache_star_gid_mapping: {2610: "/cms", 2611: "/cms"}
         dcache_volumes:
           - { name: "test-pool01", path: "/srv/dcache/pool01" }
           - { name: "test-pool02", path: "/srv/dcache/pool02", size: "10G" }

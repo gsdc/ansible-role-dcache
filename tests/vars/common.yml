@@ -6,49 +6,53 @@ dcache_gid: 2000
 
 dcache_use_voms: true
 dcache_use_oidc: true
+dcache_oidc_providers:
+  - name: cms
+    issuer: "https://cms-auth.cern.ch/"
+    options: "-profile=wlcg -prefix=/pnfs/example.org/data/cms"
 dcache_use_htpasswd: true
 # Test-only credentials; use Ansible Vault for real passwords.
 dcache_htpasswd_users:
   - { name: "testadmin", password: "changeme" }
 
 dcache_accounts:
-  - username: duneprod
+  - username: cmsprod
     uid: 61001
     gid: 2610
     permission: read-write
     entries:
-      - { root: "/", path: "/pnfs/example.org/data/dune/" }
+      - { root: "/", path: "/pnfs/example.org/data/cms/" }
     voms_fqans:
-      - "/dune/Role=production/Capability=NULL"
-  - username: dunereadonly
+      - "/cms/Role=production/Capability=NULL"
+  - username: cmsuser
     uid: 61002
     gid: 2610
     permission: read-only
     entries:
-      - { root: "/", path: "/pnfs/example.org/data/dune/" }
+      - { root: "/", path: "/pnfs/example.org/data/cms/" }
     voms_fqans:
-      - "/dune/Role=NULL/Capability=NULL"
-  - username: duneops
+      - "/cms/Role=NULL/Capability=NULL"
+  - username: cmspilot
     uid: 61003
     gid: 2611
     permission: read-write
     entries:
       - { root: "/", path: "/" }
-      - { root: "/", path: "/pnfs/example.org/data/dune/scratch/", permission: read-only }
+      - { root: "/", path: "/pnfs/example.org/data/cms/scratch/", permission: read-only }
     voms_fqans:
-      - "/dune/Role=pilot/Capability=NULL"
+      - "/cms/Role=pilot/Capability=NULL"
 
 multimaps:
   - scheme: op
-    principal: DUNE
+    principal: cms
     uid: 61001
     gid: 2610
     primary: true
-    username: duneprod
+    username: cmsprod
 
 dcache_xrootd:
   readpath: "/pnfs/example.org/data"
-  writepath: "/pnfs/example.org/data/dune"
+  writepath: "/pnfs/example.org/data/cms"
   port: 1094
 dcache_webdav:
   cellname: webdav
