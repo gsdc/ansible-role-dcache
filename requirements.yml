@@ -1,0 +1,14 @@
+---
+# Install this role and the collections it needs:
+#   ansible-galaxy install -r requirements.yml
+# Copy this file into your playbook repository and use the role as
+# "geonmo.dcache".
+roles:
+  - name: geonmo.dcache
+    src: https://github.com/gsdc/ansible-role-dcache.git
+    scm: git
+    version: main
+
+collections:
+  - name: community.general
+  - name: community.postgresql

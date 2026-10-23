@@ -16,13 +16,33 @@ Requirements
 - EL 8/9 (AlmaLinux, Rocky, CentOS Stream, RHEL). On EL9 clones the role enables the CRB repository.
 - Java 17 (installed by the role as `java-17-openjdk-headless`).
 - Internet access to `dcache.org` (dCache RPM) and, on `frontend`/`standalone`, to `download.postgresql.org` (PGDG repository).
-- Ansible collections:
-
-  ```sh
-  ansible-galaxy collection install community.general community.postgresql
-  ```
-
+- Ansible collections `community.general` and `community.postgresql` (installed by `requirements.yml`, see below).
 - A host certificate in `/etc/grid-security/` for doors that use X.509 (GridFTP, WebDAV/HTTPS, XRootD with GSI). The role can deploy it for you, see [Host certificate](#host-certificate).
+
+Installation
+------------
+
+Copy [`requirements.yml`](requirements.yml) into your playbook repository and
+run:
+
+```sh
+ansible-galaxy install -r requirements.yml
+```
+
+It installs this role from GitHub under the name `geonmo.dcache`, plus the
+required collections:
+
+```yaml
+roles:
+  - name: geonmo.dcache
+    src: https://github.com/gsdc/ansible-role-dcache.git
+    scm: git
+    version: main
+
+collections:
+  - name: community.general
+  - name: community.postgresql
+```
 
 Role Variables
 --------------
