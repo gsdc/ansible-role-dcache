@@ -390,29 +390,42 @@ express (different prefixes per LFN area, regular expressions, ...).
   and `xrootd.cms.tfc.protocol=root`. The role rewrites the layout file on
   every run, so keep a door like this in your own copy of the layout template.
 
-Container mode (one quadlet per domain)
---------------------------------------
+Install modes
+-------------
 
-The role can generate one podman quadlet per dCache domain from a layout file
-(`tasks/quadlet.yml`). Each container runs systemd as PID 1; the dCache systemd
-generator inside creates `dcache@<domain>.service` for every domain in the
-layout, and the container starts only its own one:
+`dcache_install_mode` selects how dCache runs on the target host:
+
+| Mode | What the role does |
+|---|---|
+| `rpm` (default) | Installs the dCache RPM on the host and writes its configuration (everything above). |
+| `container` | Pulls the dCache + systemd image and generates one podman quadlet per dCache domain from a layout file. Nothing is installed on the host except podman. |
+
+### Container mode
+
+Images are built by this repository's GitHub Actions
+(`.github/workflows/container.yml`, `container/Containerfile`) and published as
+`ghcr.io/gsdc/dcache-systemd:<dcache version>` (currently 9.2.47 with Java 17
+and 11.2.11 with Java 21; other versions: run the workflow manually). The
+image is the dCache RPM on `almalinux/9-init`, with systemd as PID 1 and the
+dcache account 994:1000 like the official `dcache/dcache` images. (The
+official images run a tarball install without systemd, so they cannot be used.)
+
+Each container starts only its own domain:
 
 ```
 Exec=/sbin/init systemd.mask=dcache.target systemd.wants=dcache@<domain>.service
 ```
 
-The JVM options therefore come from the layout exactly as on a host install.
-The image needs systemd and the dCache RPM (for `dcache-generator` and
-`dcache.target`), e.g. `almalinux/9-init` plus the dcache RPM.
+The dCache systemd generator inside the container creates the units from the
+layout, so the JVM options are exactly those of an RPM install.
 
 ```yaml
 - hosts: head
   roles:
     - role: gsdc.dcache
       vars:
-        dcache_quadlet_only: true            # no host install
-        dcache_quadlet_image: localhost/dcache-systemd:9.2.47
+        dcache_install_mode: container
+        dcache_version: 9.2.47          # image ghcr.io/gsdc/dcache-systemd:9.2.47
         dcache_quadlet_layout_path: /opt/dcache/etc/layouts/nonpool.conf
         dcache_quadlet_volumes:
           - /opt/dcache/etc:/etc/dcache:ro,z
@@ -421,6 +434,10 @@ The image needs systemd and the dCache RPM (for `dcache-generator` and
             - /opt/dcache/config:/var/lib/dcache/config:Z
 ```
 
+In container mode the role does not write dCache configuration: provide the
+configuration directory (layout, dcache.conf, ...) yourself and mount it. Files
+must be readable by the image's dcache account (994:1000).
+
 After changing the layout, regenerate only the quadlets:
 `ansible-playbook site.yml --tags dcache_quadlet`. Quadlets of domains that
 were removed from the layout are deleted. Containers are (re)started only when
@@ -428,14 +445,16 @@ were removed from the layout are deleted. Containers are (re)started only when
 
 | Variable | Default | Description |
 |---|---|---|
-| `dcache_quadlet_enable` | `false` | Generate quadlets after the host install. |
-| `dcache_quadlet_only` | `false` | Generate quadlets only (skip the host install). |
-| `dcache_quadlet_image` | `""` | Image with systemd and the dCache RPM. |
+| `dcache_install_mode` | `rpm` | `rpm` or `container`. |
+| `dcache_container_image` | `ghcr.io/gsdc/dcache-systemd:{{ dcache_version }}` | Image to pull. |
+| `dcache_container_image_force_pull` | `false` | Pull even if the tag exists locally. |
+| `dcache_container_registry_username` / `_password` | `""` | Registry login, only for a private image. |
 | `dcache_quadlet_layout_path` | `/etc/dcache/layouts/<type>.conf` | Layout file on the target host. |
 | `dcache_quadlet_hostname` | `ansible_hostname` | Value of `${host.name}` inside the containers. |
 | `dcache_quadlet_name_prefix` | `dcache-` | Quadlet/container/service name prefix. |
 | `dcache_quadlet_network` | `host` | `Network=` when no pod is used. |
 | `dcache_quadlet_pod` | `""` | Put all domain containers into this pod. |
+| `dcache_quadlet_podman_args` | `[]` | Extra podman arguments. |
 | `dcache_quadlet_volumes` | `[]` | Volumes for every container. |
 | `dcache_quadlet_domain_volumes` | `{}` | Extra volumes per domain. |
 | `dcache_quadlet_journal_dir` | `/var/log/dcache-journal` | Per-domain journal directory on the host. |
@@ -450,6 +469,8 @@ Notes:
   writes its config cache to `/var/lib/dcache/config/cache` in every container.
 - Container PID 1 is systemd, not java. Tools that signal the container's PID 1
   (e.g. `kill -QUIT` for a thread dump) must target the java process instead.
+- dCache logs to the journal under systemd; `dcache_quadlet_journal_dir` keeps
+  each domain's journal on the host.
 
 Known limitations
 -----------------

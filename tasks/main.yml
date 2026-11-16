@@ -1,19 +1,36 @@
 ---
 # tasks file for geonmo.dcache
 #
-# Install/configure dCache on the host (install.yml), and/or generate one podman
-# quadlet per dCache domain from a layout file (quadlet.yml).
-#   - default:                     install.yml (+ quadlet.yml when dcache_quadlet_enable)
-#   - dcache_quadlet_only: true    quadlet.yml only (e.g. a container-only head node)
-#   - --tags dcache_quadlet        quadlet.yml only (regenerate after a layout change)
-- name: Install and configure dCache on the host
-  ansible.builtin.include_tasks: install.yml
-  when: not (dcache_quadlet_only | bool)
+# dcache_install_mode selects how dCache runs on the target host:
+#   rpm        install the dCache RPM on the host (install.yml)
+#   container  pull the dCache + systemd image built by this repository's GitHub
+#              Actions (container_image.yml) and generate one podman quadlet per
+#              domain from the layout (quadlet.yml)
+# In container mode, `--tags dcache_quadlet` regenerates only the quadlets
+# (e.g. after a layout change).
+- name: Check dcache_install_mode
+  ansible.builtin.assert:
+    that:
+      - dcache_install_mode in ["rpm", "container"]
+    fail_msg: "dcache_install_mode must be 'rpm' or 'container' (got '{{ dcache_install_mode }}')."
+  tags: [always]
 
-- name: Generate dCache domain quadlets from the layout
+- name: Install and configure dCache on the host (rpm mode)
+  ansible.builtin.include_tasks: install.yml
+  when: dcache_install_mode == "rpm"
+
+- name: Pull the dCache container image (container mode)
+  ansible.builtin.include_tasks:
+    file: container_image.yml
+    apply:
+      tags: [dcache_container_image]
+  when: dcache_install_mode == "container"
+  tags: [dcache_container_image]
+
+- name: Generate dCache domain quadlets from the layout (container mode)
   ansible.builtin.include_tasks:
     file: quadlet.yml
     apply:
       tags: [dcache_quadlet]
-  when: (dcache_quadlet_enable | bool) or (dcache_quadlet_only | bool)
+  when: dcache_install_mode == "container"
   tags: [dcache_quadlet]

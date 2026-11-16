@@ -10,7 +10,7 @@ Requires={{ dcache_quadlet_pod }}.pod
 
 [Container]
 ContainerName={{ dcache_quadlet_name_prefix }}{{ domain }}
-Image={{ dcache_quadlet_image }}
+Image={{ dcache_container_image }}
 {% if dcache_quadlet_pod %}
 Pod={{ dcache_quadlet_pod }}.pod
 {% else %}

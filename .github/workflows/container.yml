@@ -1,0 +1,107 @@
+# Build the dCache + systemd image used by the role's container mode and push it
+# to ghcr.io/<owner>/dcache-systemd:<dcache version>.
+#   - push to main (container/ or this file changed): build, test, push the default versions
+#   - pull request: build and test only
+#   - manual run: build, test, push one version (inputs)
+name: container image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "container/**"
+      - ".github/workflows/container.yml"
+  pull_request:
+    paths:
+      - "container/**"
+      - ".github/workflows/container.yml"
+  workflow_dispatch:
+    inputs:
+      dcache_version:
+        description: "dCache version (e.g. 11.2.11)"
+        required: true
+      java_package:
+        description: "Java package"
+        required: true
+        default: java-21-openjdk-headless
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/dcache-systemd
+  # Versions built on push. Keep in sync with the versions sites use.
+  DEFAULT_MATRIX: >-
+    [{"dcache": "9.2.47", "java": "java-17-openjdk-headless"},
+     {"dcache": "11.2.11", "java": "java-21-openjdk-headless"}]
+
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      include: ${{ steps.m.outputs.include }}
+    steps:
+      - id: m
+        env:
+          IN_VERSION: ${{ github.event.inputs.dcache_version }}
+          IN_JAVA: ${{ github.event.inputs.java_package }}
+        run: |
+          if [ -n "$IN_VERSION" ]; then
+            echo "include=[{\"dcache\": \"$IN_VERSION\", \"java\": \"$IN_JAVA\"}]" >> "$GITHUB_OUTPUT"
+          else
+            echo "include=$(echo "$DEFAULT_MATRIX" | tr -d '\n')" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: matrix
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.matrix.outputs.include) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build
+        uses: docker/build-push-action@v6
+        with:
+          context: container
+          load: true
+          build-args: |
+            DCACHE_VERSION=${{ matrix.dcache }}
+            JAVA_PACKAGE=${{ matrix.java }}
+          tags: ${{ env.IMAGE }}:${{ matrix.dcache }}
+          cache-from: type=gha,scope=${{ matrix.dcache }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.dcache }}
+
+      # RPM, dcache account, Java, and dcache-generator creating one unit per
+      # domain from a small layout (no systemd needed).
+      - name: Test image
+        run: |
+          docker run --rm -v "$PWD/container/test-image.sh:/test-image.sh:ro" \
+            --entrypoint /bin/bash "$IMAGE:${{ matrix.dcache }}" /test-image.sh "${{ matrix.dcache }}"
+
+      - name: Log in to ghcr.io
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: container
+          push: true
+          build-args: |
+            DCACHE_VERSION=${{ matrix.dcache }}
+            JAVA_PACKAGE=${{ matrix.java }}
+          tags: |
+            ${{ env.IMAGE }}:${{ matrix.dcache }}
+            ${{ env.IMAGE }}:${{ matrix.dcache }}-${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.dcache }}

@@ -7,8 +7,8 @@
 #   Exec=/sbin/init systemd.mask=dcache.target systemd.wants=dcache@<domain>.service
 # (systemd in a container reads these options from its own argv.)
 #
-# The image must have systemd, the dCache RPM (which ships the generator) and
-# dcache.target, e.g. FROM almalinux 9-init + dcache RPM.
+# The image (dcache_container_image) is built by this repository's GitHub
+# Actions from container/Containerfile: systemd + the dCache RPM (generator).
 #
 # Shared configuration (e.g. /etc/dcache) MUST be mounted with the lowercase
 # ":z" SELinux option. With ":Z" every container relabels the file for itself
@@ -22,9 +22,9 @@
 - name: Check quadlet variables
   ansible.builtin.assert:
     that:
-      - dcache_quadlet_image | length > 0
+      - dcache_container_image | length > 0
       - dcache_quadlet_layout_path | length > 0
-    fail_msg: "Set dcache_quadlet_image and dcache_quadlet_layout_path."
+    fail_msg: "Set dcache_container_image and dcache_quadlet_layout_path."
 
 - name: Read the layout file
   ansible.builtin.slurp:

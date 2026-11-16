@@ -1,0 +1,23 @@
+---
+# Container mode: pull the dCache + systemd image.
+# The image is built from container/Containerfile by .github/workflows/container.yml
+# and published as ghcr.io/gsdc/dcache-systemd:<dcache_version>.
+- name: Install podman
+  ansible.builtin.package:
+    name: podman
+    state: present
+
+# Only needed when the image is private.
+- name: Log in to the container registry
+  containers.podman.podman_login:
+    registry: "{{ dcache_container_image.split('/')[0] }}"
+    username: "{{ dcache_container_registry_username }}"
+    password: "{{ dcache_container_registry_password }}"
+  no_log: true
+  when: dcache_container_registry_username | length > 0
+
+- name: "Pull {{ dcache_container_image }}"
+  containers.podman.podman_image:
+    name: "{{ dcache_container_image }}"
+    pull: true
+    force: "{{ dcache_container_image_force_pull | bool }}"

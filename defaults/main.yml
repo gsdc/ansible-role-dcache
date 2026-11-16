@@ -154,17 +154,21 @@ dcache_key_group: dcache
 dcache_accounts: []
 
 # ---------------------------------------------------------------------------
-# Container mode: one podman quadlet per dCache domain, generated from a layout
-# file (tasks/quadlet.yml). Each container runs systemd as PID 1 and starts only
-# its own dcache@<domain>.service. Regenerate after a layout change with
-# `--tags dcache_quadlet`.
+# Install mode
+#   rpm        dCache RPM on the host (default)
+#   container  one podman quadlet per domain, image from GitHub Actions (ghcr.io)
 # ---------------------------------------------------------------------------
-# Also generate quadlets after the normal host install.
-dcache_quadlet_enable: false
-# Only generate quadlets (skip the host install), e.g. for a container-only head.
-dcache_quadlet_only: false
-# Image with systemd + the dCache RPM (dcache-generator, dcache.target).
-dcache_quadlet_image: ""
+dcache_install_mode: rpm
+
+# --- container mode ---------------------------------------------------------
+# Image built by .github/workflows/container.yml (container/Containerfile):
+# systemd + the dCache RPM (dcache-generator, dcache.target), dcache 994:1000.
+dcache_container_image: "ghcr.io/gsdc/dcache-systemd:{{ dcache_version }}"
+# Pull again even if the tag exists locally (to pick up a rebuilt image).
+dcache_container_image_force_pull: false
+# Registry login, only for a private image.
+dcache_container_registry_username: ""
+dcache_container_registry_password: ""
 # Layout file read on the target host to find the domains.
 dcache_quadlet_layout_path: "/etc/dcache/layouts/{{ dcache_layout_type }}.conf"
 # Value of ${host.name} inside the containers (host name with Network=host,
