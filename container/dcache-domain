@@ -1,0 +1,56 @@
+#!/bin/bash
+# Container entrypoint: run ONE dCache domain exactly as an RPM install would.
+#   dcache-domain <domain>
+#
+# The dCache systemd generator (shipped in the RPM) is used as a tool: it writes
+# dcache@<domain>.service from the layout, and this script execs that unit's
+# ExecStart as the unit's User, with the unit's Environment. No systemd runs in
+# the container; java is the main process, logs go to podman/journald on the host.
+#
+# Run with podman --init (catatonit): it reaps zombies and forwards signals
+# (SIGTERM, SIGQUIT for thread dumps, ...) to java.
+#
+# DCACHE_DOMAIN_DRYRUN=1 prints the command instead of running it.
+set -euo pipefail
+
+domain="${1:-}"
+if [ -z "$domain" ]; then
+    echo "usage: dcache-domain <domain>" >&2
+    exit 2
+fi
+
+gen=/run/dcache-generator
+rm -rf "$gen"
+mkdir -p "$gen" /run/tmpfiles.d
+# Generator errors go to the container log (unlike under systemd in a container).
+/lib/systemd/system-generators/dcache-generator "$gen" "$gen" "$gen"
+
+unit="$gen/dcache@${domain}.service"
+if [ ! -f "$unit" ]; then
+    echo "dcache-domain: domain '$domain' is not in the layout." >&2
+    echo "dcache-domain: generated: $(cd "$gen" && ls dcache@*.service 2>/dev/null | tr '\n' ' ')" >&2
+    exit 1
+fi
+
+value() { sed -n "s/^$1=//p" "$unit" | tail -1; }
+user="$(value User)"
+workdir="$(value WorkingDirectory)"
+exec_start="$(value ExecStart)"
+: "${user:=dcache}"
+
+# Environment="A=1" "B=2" (possibly several lines); values are quoted by the generator.
+while IFS= read -r line; do
+    eval "export $line"
+done < <(sed -n 's/^Environment=//p' "$unit")
+
+[ -n "$workdir" ] && cd "$workdir"
+
+if [ "${DCACHE_DOMAIN_DRYRUN:-0}" = "1" ]; then
+    echo "user=$user workdir=$workdir"
+    echo "exec $exec_start"
+    exit 0
+fi
+
+echo "dcache-domain: starting $domain as $user"
+# ExecStart contains quoted arguments ("-Ddcache.home=..."), hence eval.
+eval "exec setpriv --reuid=\"$user\" --regid=\"\$(id -g \"$user\")\" --init-groups -- $exec_start"

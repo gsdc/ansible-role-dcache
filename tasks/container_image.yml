@@ -1,7 +1,7 @@
 ---
-# Container mode: pull the dCache + systemd image.
+# Container mode: pull the dCache image.
 # The image is built from container/Containerfile by .github/workflows/container.yml
-# and published as ghcr.io/gsdc/dcache-systemd:<dcache_version>.
+# and published as ghcr.io/gsdc/dcache:<dcache_version>.
 - name: Install podman
   ansible.builtin.package:
     name: podman

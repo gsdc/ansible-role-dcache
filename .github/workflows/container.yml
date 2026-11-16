@@ -1,5 +1,5 @@
-# Build the dCache + systemd image used by the role's container mode and push it
-# to ghcr.io/<owner>/dcache-systemd:<dcache version>.
+# Build the dCache image used by the role's container mode and push it
+# to ghcr.io/<owner>/dcache:<dcache version>.
 #   - push to main (container/ or this file changed): build, test, push the default versions
 #   - pull request: build and test only
 #   - manual run: build, test, push one version (inputs)
@@ -30,7 +30,7 @@ permissions:
   packages: write
 
 env:
-  IMAGE: ghcr.io/${{ github.repository_owner }}/dcache-systemd
+  IMAGE: ghcr.io/${{ github.repository_owner }}/dcache
   # Versions built on push. Keep in sync with the versions sites use.
   DEFAULT_MATRIX: >-
     [{"dcache": "9.2.47", "java": "java-17-openjdk-headless"},

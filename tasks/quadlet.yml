@@ -1,19 +1,15 @@
 ---
 # Generate one podman quadlet (.container) per dCache domain found in a layout file.
 #
-# Each container runs systemd as PID 1. The dCache systemd generator inside the
-# container creates dcache@<domain>.service for every domain in the layout;
-# the container starts only its own domain:
-#   Exec=/sbin/init systemd.mask=dcache.target systemd.wants=dcache@<domain>.service
-# (systemd in a container reads these options from its own argv.)
-#
-# The image (dcache_container_image) is built by this repository's GitHub
-# Actions from container/Containerfile: systemd + the dCache RPM (generator).
+# Each container runs one domain: the image's entrypoint (container/dcache-domain)
+# runs the dCache systemd generator to build dcache@<domain>.service from the
+# layout and execs its ExecStart as the dcache user. systemd itself does not run
+# in the container; java is the main process (under catatonit, RunInit=true) and
+# logs go to journald on the host via podman.
 #
 # Shared configuration (e.g. /etc/dcache) MUST be mounted with the lowercase
 # ":z" SELinux option. With ":Z" every container relabels the file for itself
-# and the others get "Permission denied" (the generator then silently creates
-# no units, because generator output is lost in a container).
+# and the others get "Permission denied".
 #
 # Do not share /var/lib/dcache/config between containers: the generator writes
 # its config cache to /var/lib/dcache/config/cache in every container. Mount it
@@ -57,14 +53,6 @@
     path: "{{ dcache_quadlet_dir }}"
     state: directory
     mode: "0755"
-
-- name: Ensure per-domain journal directories exist
-  ansible.builtin.file:
-    path: "{{ dcache_quadlet_journal_dir }}/{{ item }}"
-    state: directory
-    mode: "0755"
-  loop: "{{ _dcache_quadlet_domains }}"
-  when: dcache_quadlet_journal_dir | length > 0
 
 - name: Write one quadlet per domain
   ansible.builtin.template:

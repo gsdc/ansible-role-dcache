@@ -162,8 +162,8 @@ dcache_install_mode: rpm
 
 # --- container mode ---------------------------------------------------------
 # Image built by .github/workflows/container.yml (container/Containerfile):
-# systemd + the dCache RPM (dcache-generator, dcache.target), dcache 994:1000.
-dcache_container_image: "ghcr.io/gsdc/dcache-systemd:{{ dcache_version }}"
+# the dCache RPM + entrypoint dcache-domain (one domain per container), dcache 994:1000.
+dcache_container_image: "ghcr.io/gsdc/dcache:{{ dcache_version }}"
 # Pull again even if the tag exists locally (to pick up a rebuilt image).
 dcache_container_image_force_pull: false
 # Registry login, only for a private image.
@@ -188,7 +188,9 @@ dcache_quadlet_podman_args: []
 dcache_quadlet_volumes: []
 # Extra volumes per domain, e.g. {dCacheDomain: ["/opt/dcache/config:/var/lib/dcache/config:Z"]}
 dcache_quadlet_domain_volumes: {}
-# Host directory for per-domain journals (mounted as /var/log/journal); "" = none.
-dcache_quadlet_journal_dir: /var/log/dcache-journal
+# Open files limit (the generated unit uses LimitNOFILE=65535).
+dcache_quadlet_nofile: 65535
+# Restart delay (dCache default dcache.restart.delay = 10 s).
+dcache_quadlet_restart_sec: 10
 # Add [Install] WantedBy=multi-user.target (start at boot).
 dcache_quadlet_install: false

@@ -403,21 +403,22 @@ Install modes
 ### Container mode
 
 Images are built by this repository's GitHub Actions
-(`.github/workflows/container.yml`, `container/Containerfile`) and published as
-`ghcr.io/gsdc/dcache-systemd:<dcache version>` (currently 9.2.47 with Java 17
-and 11.2.11 with Java 21; other versions: run the workflow manually). The
-image is the dCache RPM on `almalinux/9-init`, with systemd as PID 1 and the
-dcache account 994:1000 like the official `dcache/dcache` images. (The
-official images run a tarball install without systemd, so they cannot be used.)
+(`.github/workflows/container.yml`, `container/`) and published as
+`ghcr.io/gsdc/dcache:<dcache version>` (currently 9.2.47 with Java 17 and
+11.2.11 with Java 21; other versions: run the workflow manually). The image is
+the dCache RPM on AlmaLinux 9 with the dcache account 994:1000, like the
+official `dcache/dcache` images.
 
-Each container starts only its own domain:
-
-```
-Exec=/sbin/init systemd.mask=dcache.target systemd.wants=dcache@<domain>.service
-```
-
-The dCache systemd generator inside the container creates the units from the
-layout, so the JVM options are exactly those of an RPM install.
+One container runs one domain. The entrypoint `dcache-domain <domain>` runs the
+dCache systemd generator shipped in the RPM to build `dcache@<domain>.service`
+from the layout, and execs that unit's `ExecStart` as the unit's user with its
+`Environment`. So the JVM command line is exactly that of an RPM install, but
+systemd does not run in the container: java is the main process (under
+catatonit, `RunInit=true`, which reaps zombies and forwards signals such as
+SIGQUIT for thread dumps), and logs go to journald on the host via podman
+(`journalctl -u dcache-<domain>`, `podman logs`). The unit's `LimitNOFILE` and
+`Restart`/`RestartSec` are set in the quadlet. (The official images are
+tarball installs without the generator, so they cannot be used.)
 
 ```yaml
 - hosts: head
@@ -425,7 +426,7 @@ layout, so the JVM options are exactly those of an RPM install.
     - role: gsdc.dcache
       vars:
         dcache_install_mode: container
-        dcache_version: 9.2.47          # image ghcr.io/gsdc/dcache-systemd:9.2.47
+        dcache_version: 9.2.47          # image ghcr.io/gsdc/dcache:9.2.47
         dcache_quadlet_layout_path: /opt/dcache/etc/layouts/nonpool.conf
         dcache_quadlet_volumes:
           - /opt/dcache/etc:/etc/dcache:ro,z
@@ -446,7 +447,7 @@ were removed from the layout are deleted. Containers are (re)started only when
 | Variable | Default | Description |
 |---|---|---|
 | `dcache_install_mode` | `rpm` | `rpm` or `container`. |
-| `dcache_container_image` | `ghcr.io/gsdc/dcache-systemd:{{ dcache_version }}` | Image to pull. |
+| `dcache_container_image` | `ghcr.io/gsdc/dcache:{{ dcache_version }}` | Image to pull. |
 | `dcache_container_image_force_pull` | `false` | Pull even if the tag exists locally. |
 | `dcache_container_registry_username` / `_password` | `""` | Registry login, only for a private image. |
 | `dcache_quadlet_layout_path` | `/etc/dcache/layouts/<type>.conf` | Layout file on the target host. |
@@ -457,20 +458,17 @@ were removed from the layout are deleted. Containers are (re)started only when
 | `dcache_quadlet_podman_args` | `[]` | Extra podman arguments. |
 | `dcache_quadlet_volumes` | `[]` | Volumes for every container. |
 | `dcache_quadlet_domain_volumes` | `{}` | Extra volumes per domain. |
-| `dcache_quadlet_journal_dir` | `/var/log/dcache-journal` | Per-domain journal directory on the host. |
+| `dcache_quadlet_nofile` | `65535` | Open files limit (as `LimitNOFILE` of the generated unit). |
+| `dcache_quadlet_restart_sec` | `10` | Restart delay (`dcache.restart.delay`). |
 | `dcache_quadlet_install` | `false` | Start the containers at boot. |
 
 Notes:
 
 - Mount shared configuration with the lowercase `:z` SELinux option. With `:Z`
-  each container relabels the files for itself, the other containers get
-  "Permission denied", and the generator silently creates no units.
+  each container relabels the files for itself and the other containers get
+  "Permission denied".
 - Do not share `/var/lib/dcache/config` between containers: the generator
   writes its config cache to `/var/lib/dcache/config/cache` in every container.
-- Container PID 1 is systemd, not java. Tools that signal the container's PID 1
-  (e.g. `kill -QUIT` for a thread dump) must target the java process instead.
-- dCache logs to the journal under systemd; `dcache_quadlet_journal_dir` keeps
-  each domain's journal on the host.
 
 Known limitations
 -----------------
