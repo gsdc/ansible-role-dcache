@@ -152,3 +152,39 @@ dcache_key_group: dcache
 #     voms_fqans:
 #       - "/cms/Role=production/Capability=NULL"
 dcache_accounts: []
+
+# ---------------------------------------------------------------------------
+# Container mode: one podman quadlet per dCache domain, generated from a layout
+# file (tasks/quadlet.yml). Each container runs systemd as PID 1 and starts only
+# its own dcache@<domain>.service. Regenerate after a layout change with
+# `--tags dcache_quadlet`.
+# ---------------------------------------------------------------------------
+# Also generate quadlets after the normal host install.
+dcache_quadlet_enable: false
+# Only generate quadlets (skip the host install), e.g. for a container-only head.
+dcache_quadlet_only: false
+# Image with systemd + the dCache RPM (dcache-generator, dcache.target).
+dcache_quadlet_image: ""
+# Layout file read on the target host to find the domains.
+dcache_quadlet_layout_path: "/etc/dcache/layouts/{{ dcache_layout_type }}.conf"
+# Value of ${host.name} inside the containers (host name with Network=host,
+# the pod's HostName with a pod).
+dcache_quadlet_hostname: "{{ ansible_hostname }}"
+dcache_quadlet_dir: /etc/containers/systemd
+# Quadlet/container/service name: <prefix><domain>
+dcache_quadlet_name_prefix: "dcache-"
+# Network= when no pod is used.
+dcache_quadlet_network: host
+# Pod name (without .pod) to put every domain container in; "" = no pod.
+dcache_quadlet_pod: ""
+# Extra podman arguments for every container.
+dcache_quadlet_podman_args: []
+# Volumes for every container ("src:dst:opts"). Shared config must use ":z".
+# Example: ["/opt/dcache/etc:/etc/dcache:ro,z"]
+dcache_quadlet_volumes: []
+# Extra volumes per domain, e.g. {dCacheDomain: ["/opt/dcache/config:/var/lib/dcache/config:Z"]}
+dcache_quadlet_domain_volumes: {}
+# Host directory for per-domain journals (mounted as /var/log/journal); "" = none.
+dcache_quadlet_journal_dir: /var/log/dcache-journal
+# Add [Install] WantedBy=multi-user.target (start at boot).
+dcache_quadlet_install: false

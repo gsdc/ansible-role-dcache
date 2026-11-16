@@ -1,0 +1,156 @@
+# dCache install and configuration (moved from main.yml; included by main.yml)
+# When dcache_uid/dcache_gid are set, pin the dcache account to those IDs.
+# Without this, if the account exists neither locally nor in LDAP, the RPM
+# postinstall creates it with the next free system UID, which differs per host
+# and breaks pool data ownership across hosts.
+# When unset, all of this is skipped and the RPM default behavior applies.
+- name: Check that dcache_uid and dcache_gid are set together
+  ansible.builtin.assert:
+    that:
+      - (dcache_uid is none) == (dcache_gid is none)
+    fail_msg: "Set both dcache_uid and dcache_gid, or neither."
+
+- name: Check whether the dcache account already exists (including LDAP)
+  ansible.builtin.getent:
+    database: passwd
+    key: dcache
+  ignore_errors: true
+  register: dcache_getent
+  when: dcache_uid is not none
+
+- name: Create local dcache system group (only if the account does not exist)
+  ansible.builtin.group:
+    name: dcache
+    gid: "{{ dcache_gid }}"
+    system: true
+    state: present
+  when:
+    - dcache_uid is not none
+    - dcache_getent is failed
+
+- name: Create local dcache system user (only if the account does not exist)
+  ansible.builtin.user:
+    name: dcache
+    uid: "{{ dcache_uid }}"
+    group: dcache
+    system: true
+    home: /var/lib/dcache
+    create_home: false
+    shell: /bin/bash
+    state: present
+  when:
+    - dcache_uid is not none
+    - dcache_getent is failed
+
+- name: Verify that the dcache account UID/GID match dcache_uid/dcache_gid
+  ansible.builtin.assert:
+    that:
+      - (dcache_getent.ansible_facts.getent_passwd.dcache[1] | int) == (dcache_uid | int)
+      - (dcache_getent.ansible_facts.getent_passwd.dcache[2] | int) == (dcache_gid | int)
+    fail_msg: >-
+      The existing dcache account has UID/GID
+      {{ dcache_getent.ansible_facts.getent_passwd.dcache[1] }}/{{ dcache_getent.ansible_facts.getent_passwd.dcache[2] }},
+      which differs from dcache_uid/dcache_gid ({{ dcache_uid }}/{{ dcache_gid }}).
+      Fix it in LDAP for an LDAP account, or with usermod/groupmod plus
+      chown -R --from for existing files for a local account. The role does not
+      change the UID automatically, since that would break ownership of files
+      already written with the old UID.
+  when:
+    - dcache_uid is not none
+    - dcache_getent is not failed
+
+- name: Configure Java JDK
+  package:
+    name:
+      - java-17-openjdk-headless 
+      - httpd-tools
+    state: present
+- name: Checking dcache package
+  package_facts:
+    manager: auto
+- name: Print dcache version
+  debug:
+    msg: "{{ dcache_version }}"
+- name: Print dcache release version
+  debug:
+    msg: "{{ dcache_version | regex_search('([0-9]+\\.[0-9]+)') }}"
+- name: Install dcache package
+  yum:
+    name: "https://dcache.org/old/downloads/1.9/repo/{{ dcache_version | regex_search('([0-9]+\\.[0-9]+)') }}/dcache-{{ dcache_version }}-1.noarch.rpm"
+    state: present
+    disable_gpg_check: true
+  when: "'dcache' not in ansible_facts.packages"
+- name: Ensure grid-security directory exists
+  file:
+    path: /etc/grid-security
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Copy host certificate from inline var
+  copy:
+    content: "{{ dcache_hostcert_pem }}"
+    dest: /etc/grid-security/hostcert.pem
+    owner: "{{ dcache_cert_owner }}"
+    group: "{{ dcache_cert_group }}"
+    mode: "0644"
+  when:
+    - dcache_manage_hostcert | bool
+    - dcache_hostcert_pem is defined and dcache_hostcert_pem is not none
+
+- name: Copy host certificate from source file
+  copy:
+    src: "{{ (dcache_hostcert_src | default(ansible_hostname ~ '_hostcert.pem')) }}"
+    dest: /etc/grid-security/hostcert.pem
+    owner: "{{ dcache_cert_owner }}"
+    group: "{{ dcache_cert_group }}"
+    mode: "0644"
+  when:
+    - dcache_manage_hostcert | bool
+    - dcache_hostcert_pem is not defined or dcache_hostcert_pem is none
+
+- name: Copy host private key from inline var
+  copy:
+    content: "{{ dcache_hostkey_pem }}"
+    dest: /etc/grid-security/hostkey.pem
+    owner: "{{ dcache_key_owner }}"
+    group: "{{ dcache_key_group }}"
+    mode: "0400"
+  when:
+    - dcache_manage_hostkey | bool
+    - dcache_hostkey_pem is defined and dcache_hostkey_pem is not none
+
+- name: Copy host private key from source file
+  copy:
+    src: "{{ (dcache_hostkey_src | default(ansible_hostname ~ '_hostkey.pem')) }}"
+    dest: /etc/grid-security/hostkey.pem
+    owner: "{{ dcache_key_owner }}"
+    group: "{{ dcache_key_group }}"
+    mode: "0400"
+  when:
+    - dcache_manage_hostkey | bool
+    - dcache_hostkey_pem is not defined or dcache_hostkey_pem is none
+- name: "Check dcache_volumes"
+  file:
+    path: "{{ item.path }}"
+    owner: dcache
+    group: dcache
+    state: directory
+  with_items: "{{ dcache_volumes }}"
+
+- name: Configure dcache
+  assert:
+    that:
+      - dcache_layout_type in ["backend","frontend","standalone"]
+    fail_msg: "Variable 'dcache_layout_type' must be one of: backend, frontend, standalone"
+    success_msg: "Role type '{{ dcache_layout_type }}' is valid"
+- name: Check required variables for the frontend layout
+  assert:
+    that:
+      - dcache_site_unique_id is defined and dcache_site_unique_id
+      - dcache_srr_shares is defined and dcache_srr_shares
+    fail_msg: "The frontend layout requires dcache_site_unique_id and dcache_srr_shares."
+  when: dcache_layout_type == "frontend"
+- name: Include standalone tasks (handles all types)
+  include_tasks: "standalone.yml"

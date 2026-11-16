@@ -390,6 +390,67 @@ express (different prefixes per LFN area, regular expressions, ...).
   and `xrootd.cms.tfc.protocol=root`. The role rewrites the layout file on
   every run, so keep a door like this in your own copy of the layout template.
 
+Container mode (one quadlet per domain)
+--------------------------------------
+
+The role can generate one podman quadlet per dCache domain from a layout file
+(`tasks/quadlet.yml`). Each container runs systemd as PID 1; the dCache systemd
+generator inside creates `dcache@<domain>.service` for every domain in the
+layout, and the container starts only its own one:
+
+```
+Exec=/sbin/init systemd.mask=dcache.target systemd.wants=dcache@<domain>.service
+```
+
+The JVM options therefore come from the layout exactly as on a host install.
+The image needs systemd and the dCache RPM (for `dcache-generator` and
+`dcache.target`), e.g. `almalinux/9-init` plus the dcache RPM.
+
+```yaml
+- hosts: head
+  roles:
+    - role: gsdc.dcache
+      vars:
+        dcache_quadlet_only: true            # no host install
+        dcache_quadlet_image: localhost/dcache-systemd:9.2.47
+        dcache_quadlet_layout_path: /opt/dcache/etc/layouts/nonpool.conf
+        dcache_quadlet_volumes:
+          - /opt/dcache/etc:/etc/dcache:ro,z
+        dcache_quadlet_domain_volumes:
+          dCacheDomain:
+            - /opt/dcache/config:/var/lib/dcache/config:Z
+```
+
+After changing the layout, regenerate only the quadlets:
+`ansible-playbook site.yml --tags dcache_quadlet`. Quadlets of domains that
+were removed from the layout are deleted. Containers are (re)started only when
+`dcache_start: true`.
+
+| Variable | Default | Description |
+|---|---|---|
+| `dcache_quadlet_enable` | `false` | Generate quadlets after the host install. |
+| `dcache_quadlet_only` | `false` | Generate quadlets only (skip the host install). |
+| `dcache_quadlet_image` | `""` | Image with systemd and the dCache RPM. |
+| `dcache_quadlet_layout_path` | `/etc/dcache/layouts/<type>.conf` | Layout file on the target host. |
+| `dcache_quadlet_hostname` | `ansible_hostname` | Value of `${host.name}` inside the containers. |
+| `dcache_quadlet_name_prefix` | `dcache-` | Quadlet/container/service name prefix. |
+| `dcache_quadlet_network` | `host` | `Network=` when no pod is used. |
+| `dcache_quadlet_pod` | `""` | Put all domain containers into this pod. |
+| `dcache_quadlet_volumes` | `[]` | Volumes for every container. |
+| `dcache_quadlet_domain_volumes` | `{}` | Extra volumes per domain. |
+| `dcache_quadlet_journal_dir` | `/var/log/dcache-journal` | Per-domain journal directory on the host. |
+| `dcache_quadlet_install` | `false` | Start the containers at boot. |
+
+Notes:
+
+- Mount shared configuration with the lowercase `:z` SELinux option. With `:Z`
+  each container relabels the files for itself, the other containers get
+  "Permission denied", and the generator silently creates no units.
+- Do not share `/var/lib/dcache/config` between containers: the generator
+  writes its config cache to `/var/lib/dcache/config/cache` in every container.
+- Container PID 1 is systemd, not java. Tools that signal the container's PID 1
+  (e.g. `kill -QUIT` for a thread dump) must target the java process instead.
+
 Known limitations
 -----------------
 
