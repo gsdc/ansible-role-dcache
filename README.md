@@ -57,6 +57,7 @@ All defaults are in [`defaults/main.yml`](defaults/main.yml).
 | `dcache_version` | `11.2.9` | dCache version to install from `dcache.org`. |
 | `dcache_headnode` | `{{ ansible_fqdn }}` | Host running ZooKeeper. Set it to the head node FQDN on `backend` nodes. |
 | `psql_version` | `18` | PostgreSQL major version (PGDG) on `frontend`/`standalone`. |
+| `dcache_start` | `false` | Run `dcache restart` at the end of the role. By default the role only installs and configures dCache; start it yourself (`systemctl start dcache.target`) or set this to `true`. |
 | `dcache_java_heap` | `4096m` | Default JVM heap for all dCache domains. |
 | `dcache_net_wan_port_min` / `dcache_net_wan_port_max` | `20000` / `25000` | WAN port range used by movers that talk to external clients. Open it in the firewall on pool nodes. The role also puts pool XRootD movers in this range (dCache 11.2 uses the LAN range for them by default); for an internal-only XRootD setup, override `pool.mover.xrootd.port.min/max` in the corresponding cell section of the layout. |
 | `dcache_net_lan_port_min` / `dcache_net_lan_port_max` | `30000` / `35000` | LAN port range for internal connections between dCache domains. |
@@ -392,7 +393,7 @@ express (different prefixes per LFN area, regular expressions, ...).
 Known limitations
 -----------------
 
-- dCache is restarted (`dcache restart`) on every run.
+- dCache is not started by default. With `dcache_start: true` it is restarted (`dcache restart`) on every run.
 - The dCache RPM is not upgraded if any version is already installed.
 - Links, link groups and space reservations are not managed by the role; see [Manual post-installation steps](#manual-post-installation-steps).
 - Disk-only sites are assumed (e.g. WLCG Tier-2): only `cleaner-disk` is deployed. Sites with tape (HSM) pools need to add `cleaner-hsm` and the HSM settings themselves.

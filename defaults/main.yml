@@ -19,6 +19,11 @@ dcache_net_wan_port_min: 20000
 dcache_net_wan_port_max: 25000
 dcache_net_lan_port_min: 30000
 dcache_net_lan_port_max: 35000
+# Start (restart) dCache at the end of the role. Default false: the role only
+# installs and configures. Starting a pool by accident can be harmful, e.g. when
+# the same pool name/path is still served by another (old) host during a
+# migration. Set true to keep the old "restart on every run" behavior.
+dcache_start: false
 # Default JVM heap for all dCache domains.
 dcache_java_heap: "4096m"
 dcache_use_voms: true

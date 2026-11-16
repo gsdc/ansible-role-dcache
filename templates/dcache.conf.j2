@@ -14,6 +14,11 @@ dcache.net.lan.port.max = {{ dcache_net_lan_port_max }}
 # with the LAN range in the corresponding cell section of the layout.
 pool.mover.xrootd.port.min = ${dcache.net.wan.port.min}
 pool.mover.xrootd.port.max = ${dcache.net.wan.port.max}
+# Pool HTTP/WebDAV movers use the same WAN range. This is already dCache's
+# default; it is set explicitly so that both mover types always match.
+# HTTPS movers follow pool.mover.http.port.* by default.
+pool.mover.http.port.min = ${dcache.net.wan.port.min}
+pool.mover.http.port.max = ${dcache.net.wan.port.max}
 {% if dcache_gplazma_gridmap_file %}
 gplazma.gridmap.file={{ dcache_gplazma_gridmap_file }}
 {% endif %}

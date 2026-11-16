@@ -137,8 +137,9 @@
     owner: dcache
     group: dcache
     mode: "0644"
-- name: Restart dcache
+- name: Restart dcache (only when dcache_start is true)
   command: dcache restart
+  when: dcache_start | bool
  
 # Optional packages typically for door/frontend
 - name: Install XRootD server
